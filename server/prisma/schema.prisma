@@ -1,0 +1,357 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// USER AUTHENTICATION & MANAGEMENT
+// ========================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  fullName      String
+  avatarUrl     String?
+  phone         String?
+  countryCode   String    @default("IN")
+  timezone      String    @default("Asia/Kolkata")
+  language      String    @default("en")
+  emailVerified Boolean   @default(false)
+  phoneVerified Boolean   @default(false)
+  status        String    @default("active") // active, suspended, deleted
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  organizations   OrganizationMember[]
+  subscriptions   Subscription[]
+  brandProfiles   BrandProfile[]
+  contentAssets   ContentAsset[]
+  generatedContent GeneratedContent[]
+  payments        Payment[]
+  sessions        Session[]
+
+  @@index([email])
+  @@index([status])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ========================================
+// ORGANIZATIONS & TEAMS
+// ========================================
+
+model Organization {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  ownerId     String
+  logoUrl     String?
+  website     String?
+  industry    String?
+  companySize String?
+  type        String    @default("individual") // individual, agency, enterprise
+  settings    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  members      OrganizationMember[]
+  brandProfiles BrandProfile[]
+  contentAssets ContentAsset[]
+  generatedContent GeneratedContent[]
+  subscriptions Subscription[]
+
+  @@index([slug])
+}
+
+model OrganizationMember {
+  id             String    @id @default(uuid())
+  organizationId String
+  userId         String
+  role           String // owner, admin, manager, creator, client
+  permissions    Json      @default("{}")
+  invitedBy      String?
+  invitedAt      DateTime?
+  joinedAt       DateTime?
+  status         String    @default("active") // pending, active, inactive
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+// ========================================
+// SUBSCRIPTIONS & BILLING
+// ========================================
+
+model SubscriptionPlan {
+  id             String   @id @default(uuid())
+  name           String
+  slug           String   @unique
+  description    String?
+  billingPeriod  String // monthly, yearly
+  priceInr       Decimal  @db.Decimal(10, 2)
+  priceUsd       Decimal  @db.Decimal(10, 2)
+  features       Json
+  limits         Json
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                     String    @id @default(uuid())
+  userId                 String
+  organizationId         String?
+  planId                 String
+  status                 String // trial, active, past_due, canceled, expired
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean   @default(false)
+  canceledAt             DateTime?
+  trialStart             DateTime?
+  trialEnd               DateTime?
+  razorpaySubscriptionId String?
+  stripeSubscriptionId   String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization?     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         SubscriptionPlan  @relation(fields: [planId], references: [id])
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Payment {
+  id                String    @id @default(uuid())
+  userId            String
+  subscriptionId    String?
+  amount            Decimal   @db.Decimal(10, 2)
+  currency          String // INR, USD
+  status            String // pending, success, failed, refunded
+  paymentGateway    String? // razorpay, stripe
+  gatewayPaymentId  String?
+  gatewayOrderId    String?
+  gatewayResponse   Json?
+  invoiceUrl        String?
+  receiptUrl        String?
+  paidAt            DateTime?
+  refundedAt        DateTime?
+  refundAmount      Decimal?  @db.Decimal(10, 2)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+// ========================================
+// BRAND PROFILES & VOICE
+// ========================================
+
+model BrandProfile {
+  id                 String    @id @default(uuid())
+  userId             String
+  organizationId     String?
+  name               String
+  description        String?
+  industry           String?
+  targetAudience     String?
+  contentGoals       String[]
+  preferredPlatforms String[]
+  tonePreset         String? // professional, casual, viral, hinglish
+  customGuidelines   String?
+  sampleContentUrls  String[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization  Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contentAssets ContentAsset[]
+
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// ========================================
+// CONTENT ASSETS & ANALYSIS
+// ========================================
+
+model ContentAsset {
+  id                     String    @id @default(uuid())
+  userId                 String
+  organizationId         String?
+  brandProfileId         String?
+  title                  String
+  description            String?
+  contentType            String // video, audio, blog, document, image
+  fileUrl                String
+  thumbnailUrl           String?
+  fileSize               BigInt?
+  duration               Int? // in seconds for video/audio
+  mimeType               String?
+  sourcePlatform         String? // youtube, instagram, linkedin, upload
+  sourceUrl              String?
+  uploadStatus           String    @default("pending") // pending, processing, completed, failed
+  processingStartedAt    DateTime?
+  processingCompletedAt  DateTime?
+  processingError        String?
+  metadata               Json      @default("{}")
+  tags                   String[]
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  brandProfile BrandProfile? @relation(fields: [brandProfileId], references: [id])
+  
+  analysis         ContentAnalysis?
+  repurposingJobs  RepurposingJob[]
+  generatedContent GeneratedContent[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([contentType])
+  @@index([uploadStatus])
+}
+
+model ContentAnalysis {
+  id                    String   @id @default(uuid())
+  contentAssetId        String   @unique
+  transcript            String?
+  transcriptLanguage    String?
+  transcriptConfidence  Decimal? @db.Decimal(5, 2)
+  topics                String[]
+  keywords              String[]
+  entities              Json?
+  sentimentScore        Decimal? @db.Decimal(5, 2)
+  emotionAnalysis       Json?
+  viralityScore         Decimal? @db.Decimal(5, 2)
+  repurposingValue      Decimal? @db.Decimal(5, 2)
+  seoScore              Decimal? @db.Decimal(5, 2)
+  engagementPotential   Decimal? @db.Decimal(5, 2)
+  hookMoments           Json?
+  keyInsights           String[]
+  quotableMoments       Json?
+  platformScores        Json?
+  analyzedAt            DateTime @default(now())
+  analysisModel         String?
+
+  contentAsset ContentAsset @relation(fields: [contentAssetId], references: [id], onDelete: Cascade)
+
+  @@index([contentAssetId])
+}
+
+// ========================================
+// REPURPOSING ENGINE
+// ========================================
+
+model RepurposingJob {
+  id                     String    @id @default(uuid())
+  contentAssetId         String
+  userId                 String
+  organizationId         String?
+  jobType                String // video_to_shorts, blog_to_social, podcast_to_blog
+  outputFormat           String // short_video, linkedin_post, twitter_thread
+  targetPlatforms        String[]
+  config                 Json      @default("{}")
+  status                 String    @default("queued") // queued, processing, completed, failed, cancelled
+  priority               Int       @default(5)
+  progress               Int       @default(0)
+  startedAt              DateTime?
+  completedAt            DateTime?
+  failedAt               DateTime?
+  errorMessage           String?
+  creditsUsed            Int       @default(0)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  contentAsset     ContentAsset       @relation(fields: [contentAssetId], references: [id], onDelete: Cascade)
+  generatedContent GeneratedContent[]
+
+  @@index([contentAssetId])
+  @@index([userId])
+  @@index([status])
+}
+
+model GeneratedContent {
+  id                  String    @id @default(uuid())
+  repurposingJobId    String?
+  contentAssetId      String?
+  userId              String
+  organizationId      String?
+  title               String?
+  contentText         String?
+  fileUrl             String?
+  thumbnailUrl        String?
+  contentType         String // short_video, social_post, blog_article, carousel
+  targetPlatform      String // instagram, linkedin, tiktok, youtube
+  caption             String?
+  hashtags            String[]
+  cta                 String?
+  duration            Int?
+  wordCount           Int?
+  fileSize            BigInt?
+  metadata            Json      @default("{}")
+  qualityScore        Decimal?  @db.Decimal(5, 2)
+  viralityPrediction  Decimal?  @db.Decimal(5, 2)
+  isPublished         Boolean   @default(false)
+  publishedAt         DateTime?
+  scheduledFor        DateTime?
+  views               Int       @default(0)
+  likes               Int       @default(0)
+  comments            Int       @default(0)
+  shares              Int       @default(0)
+  engagementRate      Decimal?  @db.Decimal(5, 2)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  repurposingJob RepurposingJob? @relation(fields: [repurposingJobId], references: [id], onDelete: Cascade)
+  contentAsset   ContentAsset?   @relation(fields: [contentAssetId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([repurposingJobId])
+  @@index([userId])
+  @@index([targetPlatform])
+}
