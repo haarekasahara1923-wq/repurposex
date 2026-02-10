@@ -17,6 +17,9 @@ import subscriptionRoutes from './routes/subscription.routes';
 const app: Application = express();
 const PORT = process.env.API_PORT || 5000;
 
+// Required for Vercel
+app.set('trust proxy', 1);
+
 // ========================================
 // MIDDLEWARE
 // ========================================
