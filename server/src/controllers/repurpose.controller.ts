@@ -40,6 +40,8 @@ export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
         if (rawJobType.includes('linkedin')) jobType = 'linkedin';
         if (rawJobType.includes('twitter')) jobType = 'twitter_thread';
         if (rawJobType.includes('instagram')) jobType = 'instagram';
+        if (rawJobType.includes('facebook')) jobType = 'facebook';
+        if (rawJobType.includes('youtube')) jobType = 'youtube';
 
         // Verify content exists and belongs to user
         const content = await prisma.contentAsset.findFirst({
@@ -231,6 +233,20 @@ async function processRepurposingJob(
                     hashtags: result.hashtags || [],
                     contentType: 'social_post',
                     targetPlatform: 'instagram'
+                });
+                break;
+
+            case 'facebook':
+            case 'youtube':
+                const platform = jobType === 'youtube' ? 'facebook' : jobType; // Fallback for youtube
+                result = await aiService.generateSocialPost(transcript, platform as any, config.tone || 'professional');
+                generatedContents.push({
+                    title: `${jobType.charAt(0).toUpperCase() + jobType.slice(1)} Post`,
+                    contentText: result.content,
+                    caption: result.content,
+                    hashtags: result.hashtags || [],
+                    contentType: 'social_post',
+                    targetPlatform: jobType
                 });
                 break;
 
