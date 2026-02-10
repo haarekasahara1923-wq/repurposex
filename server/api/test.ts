@@ -22,7 +22,11 @@ export default async function handler(req: Request, res: Response) {
             environment: process.env.NODE_ENV,
             database: dbStatus,
             hasOpenAI: !!process.env.OPENAI_API_KEY,
-            hasJWT: !!process.env.JWT_SECRET
+            auth: {
+                hasJWT: !!process.env.JWT_SECRET,
+                jwtLength: process.env.JWT_SECRET?.length,
+                jwtPrefix: process.env.JWT_SECRET?.substring(0, 4)
+            }
         });
     } catch (error: any) {
         return res.status(500).json({

@@ -101,12 +101,10 @@ export const register = async (req: Request, res: Response) => {
 
         res.status(201).json({
             success: true,
-            data: {
-                user,
-                accessToken,
-                refreshToken,
-                expiresIn: 3600
-            }
+            user,
+            token: accessToken,
+            refreshToken,
+            expiresIn: 3600
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
@@ -200,17 +198,15 @@ export const login = async (req: Request, res: Response) => {
 
         res.json({
             success: true,
-            data: {
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    fullName: user.fullName,
-                    avatarUrl: user.avatarUrl
-                },
-                accessToken,
-                refreshToken,
-                expiresIn: 3600
-            }
+            user: {
+                id: user.id,
+                email: user.email,
+                fullName: user.fullName,
+                avatarUrl: user.avatarUrl
+            },
+            token: accessToken,
+            refreshToken,
+            expiresIn: 3600
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
@@ -272,10 +268,7 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        res.json({
-            success: true,
-            data: user
-        });
+        res.json(user);
     } catch (error) {
         console.error('Get current user error:', error);
         return res.status(500).json({
