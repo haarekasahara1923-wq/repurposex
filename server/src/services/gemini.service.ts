@@ -16,7 +16,7 @@ export interface ContentGenerationResult {
 
 export const analyzeContent = async (text: string): Promise<any> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Analyze the following content and provide:
 1. 3-5 main topics
 2. 10-15 relevant keywords
@@ -61,7 +61,7 @@ export const generateSocialPost = async (
     tone: 'professional' | 'casual' | 'viral' | 'hinglish' = 'professional'
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const platformGuidelines = {
             linkedin: {
@@ -130,7 +130,7 @@ export const generateBlogPost = async (
     wordCount: number = 1000
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Transform the following content into a comprehensive blog post.
 
 Requirements:
@@ -167,7 +167,7 @@ export const generateTwitterThread = async (
     threadLength: number = 10
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Create a ${threadLength}-tweet thread from this content.
 
 Requirements:
