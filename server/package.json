@@ -5,13 +5,19 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
+    "vercel-build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio"
   },
-  "keywords": ["saas", "ai", "content", "repurposing"],
+  "keywords": [
+    "saas",
+    "ai",
+    "content",
+    "repurposing"
+  ],
   "author": "RepurposeX Team",
   "license": "MIT",
   "dependencies": {
