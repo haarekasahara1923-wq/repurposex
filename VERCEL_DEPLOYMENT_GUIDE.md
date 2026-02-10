@@ -192,7 +192,7 @@ Wait for build to complete ✅
 
 ```
 OPENAI_API_KEY=sk-proj-GET_YOUR_NEW_KEY
-DATABASE_URL=postgresql://postgres:LKflqJDPFGjtztgmNDvnmULlfAqnrmhh@shuttle.proxy.rlwy.net:56814/railway
+DATABASE_URL=postgresql://neondb_owner:YOUR_NEON_PASSWORD@ep-xxx.aws.neon.tech/neondb?sslmode=require
 REDIS_URL=rediss://default:AVOWAAIncDI4NmMxNGNjNjZjOGQ0YzM5YWMzN2YzMGZjNWMxNjcxMnAyMjEzOTg@learning-sunbeam-21398.upstash.io:6379
 JWT_SECRET=ff87bd124444cc9ea44f67fa7480e7da12c07ee11deea63776c2fc767f40c381
 API_PORT=5000

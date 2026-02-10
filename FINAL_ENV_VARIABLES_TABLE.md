@@ -14,7 +14,7 @@
 | # | Variable Name | Example Value | Description | Where to Get |
 |---|---------------|---------------|-------------|--------------|
 | 1 | `OPENAI_API_KEY` | `sk-proj-abc123...` | OpenAI API key for AI features | https://platform.openai.com/api-keys |
-| 2 | `DATABASE_URL` | `postgresql://postgres:LKflq...@shuttle.proxy.rlwy.net:56814/railway` | Railway PostgreSQL connection | Railway Dashboard → Variables |
+| 2 | `DATABASE_URL` | `postgresql://neondb_owner:xxx@ep-xxx.aws.neon.tech/neondb?sslmode=require` | Neon PostgreSQL connection | Neon Dashboard → Connection String |
 | 3 | `REDIS_URL` | `rediss://default:AVOWA...@learning-sunbeam-21398.upstash.io:6379` | Upstash Redis with TLS | Upstash Dashboard → Connection |
 | 4 | `JWT_SECRET` | `ff87bd124444cc9ea44f67fa7480e7da...` | Secret key for JWT tokens | Generated (see command below) |
 | 5 | `API_PORT` | `5000` | Backend server port | Default |
@@ -74,7 +74,7 @@ OPENAI_API_KEY=sk-proj-GET_NEW_KEY_FROM_OPENAI_DASHBOARD
 # ========================================
 # 🗄️ Database & Cache
 # ========================================
-DATABASE_URL=postgresql://postgres:LKflqJDPFGjtztgmNDvnmULlfAqnrmhh@shuttle.proxy.rlwy.net:56814/railway
+DATABASE_URL=postgresql://neondb_owner:YOUR_NEON_PASSWORD@ep-xxx.aws.neon.tech/neondb?sslmode=require
 REDIS_URL=rediss://default:AVOWAAIncDI4NmMxNGNjNjZjOGQ0YzM5YWMzN2YzMGZjNWMxNjcxMnAyMjEzOTg@learning-sunbeam-21398.upstash.io:6379
 
 # ========================================
@@ -130,11 +130,11 @@ NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_paypal_client_id
 
 ---
 
-## 🔐 Already Configured (Ready to Use):
+## 🔐 Database & Cache Setup Required:
 
 | Service | Variable | Value | Status |
 |---------|----------|-------|--------|
-| **Railway PostgreSQL** | `DATABASE_URL` | `postgresql://postgres:LKflq...@shuttle.proxy.rlwy.net:56814/railway` | ✅ Ready |
+| **Neon PostgreSQL** | `DATABASE_URL` | Get from Neon Dashboard | ⚠️ Create account & get URL |
 | **Upstash Redis** | `REDIS_URL` | `rediss://default:AVOWA...@learning-sunbeam-21398.upstash.io:6379` | ✅ Ready |
 | **JWT Secret** | `JWT_SECRET` | `ff87bd124444cc9ea44f67fa7480e7da...` | ✅ Ready |
 
