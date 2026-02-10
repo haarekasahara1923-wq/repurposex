@@ -5,6 +5,10 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+if (!process.env.OPENAI_API_KEY) {
+    console.error('CRITICAL: OPENAI_API_KEY is not defined in environment variables!');
+}
+
 export interface TranscriptionResult {
     text: string;
     language?: string;
@@ -43,9 +47,9 @@ export const transcribeAudio = async (
             language: (transcription as any).language,
             duration: (transcription as any).duration
         };
-    } catch (error) {
-        console.error('Transc ription error:', error);
-        throw new Error('Failed to transcribe audio');
+    } catch (error: any) {
+        console.error('Transcription error:', error);
+        throw new Error(`Transcription failed: ${error.message || error}`);
     }
 };
 
@@ -101,9 +105,9 @@ Respond in JSON format:
 
         const analysis = JSON.parse(response.choices[0].message.content || '{}');
         return analysis;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Content analysis error:', error);
-        throw new Error('Failed to analyze content');
+        throw new Error(`Analysis failed: ${error.message || error}`);
     }
 };
 
@@ -156,9 +160,9 @@ Respond in JSON format:
 
         const result = JSON.parse(response.choices[0].message.content || '{}');
         return result;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Blog generation error:', error);
-        throw new Error('Failed to generate blog post');
+        throw new Error(`Blog generation failed: ${error.message || error}`);
     }
 };
 
@@ -239,9 +243,9 @@ Respond in JSON format:
 
         const result = JSON.parse(response.choices[0].message.content || '{}');
         return result;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Social post generation error:', error);
-        throw new Error('Failed to generate social post');
+        throw new Error(`Social post generation failed: ${error.message || error}`);
     }
 };
 
@@ -293,9 +297,9 @@ Respond in JSON format:
 
         const result = JSON.parse(response.choices[0].message.content || '{}');
         return result;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Twitter thread generation error:', error);
-        throw new Error('Failed to generate Twitter thread');
+        throw new Error(`Twitter thread generation failed: ${error.message || error}`);
     }
 };
 
