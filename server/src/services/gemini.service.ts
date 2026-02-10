@@ -3,17 +3,45 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Helper to get model with fallback
-const getModel = () => {
-    // Masked log for debugging in Vercel
-    const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : "MISSING";
-    console.log(`Initializing Gemini with Key: ${maskedKey}`);
+// Runtime fallback mechanism
+const generateWithFallback = async (prompt: string) => {
+    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+    let lastError: any;
 
+    const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : "MISSING";
+    console.log(`Gemini Request (Key: ${maskedKey})`);
+
+    for (const modelName of models) {
+        try {
+            console.log(`Trying model: ${modelName}`);
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+
+            if (text) return text;
+        } catch (error: any) {
+            console.error(`Model ${modelName} error:`, error.message);
+            lastError = error;
+            // If it's a quota or auth error, don't bother retrying other models
+            if (error.message?.includes('429') || error.message?.includes('403')) {
+                break;
+            }
+            continue; // Try next model on 404 or other errors
+        }
+    }
+    throw lastError || new Error("All Gemini models failed");
+};
+
+// Helper to clean and parse JSON from AI response
+const parseAIJson = (text: string) => {
     try {
-        // We'll return the most standard one, and the call will handle specific errors
-        return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const cleanText = jsonMatch ? jsonMatch[0] : text.replace(/```json|```/g, "").trim();
+        return JSON.parse(cleanText);
     } catch (e) {
-        return genAI.getGenerativeModel({ model: "gemini-pro" });
+        console.error("Failed to parse AI JSON:", text);
+        throw new Error("Invalid response format from AI");
     }
 };
 
@@ -31,7 +59,6 @@ export interface ContentGenerationResult {
 
 export const analyzeContent = async (text: string): Promise<any> => {
     try {
-        const model = getModel();
         const prompt = `Analyze the following content and provide:
 1. 3-5 main topics
 2. 10-15 relevant keywords
@@ -60,10 +87,8 @@ Respond STRICTLY in JSON format:
   }
 }`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = response.text().replace(/```json|```/g, "").trim();
-        return JSON.parse(jsonText);
+        const responseText = await generateWithFallback(prompt);
+        return parseAIJson(responseText);
     } catch (error: any) {
         console.error('Gemini Analysis error:', error);
         throw new Error(`Gemini Analysis failed: ${error.message}`);
@@ -76,8 +101,6 @@ export const generateSocialPost = async (
     tone: 'professional' | 'casual' | 'viral' | 'hinglish' = 'professional'
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = getModel();
-
         const platformGuidelines = {
             linkedin: {
                 maxLength: 2000,
@@ -108,7 +131,7 @@ export const generateSocialPost = async (
             hinglish: 'Mix of Hindi and English words (e.g., "Bahut important", "Kya soch rahe ho?")'
         };
 
-        const guidelines = platformGuidelines[platform];
+        const guidelines = platformGuidelines[platform] || platformGuidelines.linkedin;
 
         const prompt = `Create a ${platform} post from this content.
 
@@ -130,10 +153,8 @@ Respond STRICTLY in JSON format:
   "caption": "Instagram caption if applicable"
 }`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = response.text().replace(/```json|```/g, "").trim();
-        return JSON.parse(jsonText);
+        const responseText = await generateWithFallback(prompt);
+        return parseAIJson(responseText);
     } catch (error: any) {
         console.error('Gemini Social post error:', error);
         throw new Error(`Gemini Social post generation failed: ${error.message}`);
@@ -145,7 +166,6 @@ export const generateBlogPost = async (
     wordCount: number = 1000
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = getModel();
         const prompt = `Transform the following content into a comprehensive blog post.
 
 Requirements:
@@ -167,10 +187,8 @@ Respond STRICTLY in JSON format:
   "keywords": ["keyword1", "keyword2"]
 }`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = response.text().replace(/```json|```/g, "").trim();
-        return JSON.parse(jsonText);
+        const responseText = await generateWithFallback(prompt);
+        return parseAIJson(responseText);
     } catch (error: any) {
         console.error('Gemini Blog error:', error);
         throw new Error(`Gemini Blog generation failed: ${error.message}`);
@@ -182,7 +200,6 @@ export const generateTwitterThread = async (
     threadLength: number = 10
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = getModel();
         const prompt = `Create a ${threadLength}-tweet thread from this content.
 
 Requirements:
@@ -207,10 +224,8 @@ Respond STRICTLY in JSON format:
   "thread_summary": "What this thread is about"
 }`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const jsonText = response.text().replace(/```json|```/g, "").trim();
-        return JSON.parse(jsonText);
+        const responseText = await generateWithFallback(prompt);
+        return parseAIJson(responseText);
     } catch (error: any) {
         console.error('Gemini Twitter thread error:', error);
         throw new Error(`Gemini Twitter thread failed: ${error.message}`);
