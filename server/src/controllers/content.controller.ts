@@ -41,14 +41,12 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
 
         res.status(201).json({
             success: true,
-            data: {
-                id: content.id,
-                title: content.title,
-                contentType: content.contentType,
-                fileUrl: content.fileUrl,
-                uploadStatus: content.uploadStatus,
-                createdAt: content.createdAt
-            }
+            id: content.id,
+            title: content.title,
+            contentType: content.contentType,
+            fileUrl: content.fileUrl,
+            uploadStatus: content.uploadStatus,
+            createdAt: content.createdAt
         });
     } catch (error) {
         console.error('Upload error:', error);
@@ -85,7 +83,9 @@ export const getContentList = async (req: AuthRequest, res: Response) => {
                     duration: true,
                     uploadStatus: true,
                     createdAt: true,
-                    tags: true
+                    tags: true,
+                    fileSize: true,
+                    description: true
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
@@ -99,18 +99,11 @@ export const getContentList = async (req: AuthRequest, res: Response) => {
             })
         ]);
 
-        res.json({
-            success: true,
-            data: {
-                items: contents,
-                pagination: {
-                    page: parseInt(page as string),
-                    limit: parseInt(limit as string),
-                    total,
-                    hasNext: skip + contents.length < total
-                }
-            }
-        });
+        // Just return the array for simplicity if frontend expects Array
+        // Or if it expects items, return items directly.
+        // Looking at frontend: data = await contentAPI.getAll(); setContent(data);
+        // It expects an array.
+        res.json(contents);
     } catch (error) {
         console.error('Get content list error:', error);
         res.status(500).json({

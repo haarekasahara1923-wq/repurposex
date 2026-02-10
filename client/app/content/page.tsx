@@ -43,7 +43,18 @@ export default function ContentLibraryPage() {
         try {
             setLoading(true);
             const data = await contentAPI.getAll();
-            setContent(data);
+            // Ensure data is an array
+            if (Array.isArray(data)) {
+                // Map backend fields if needed
+                const mappedData = data.map(item => ({
+                    ...item,
+                    type: (item as any).contentType || item.type || 'unknown',
+                }));
+                setContent(mappedData);
+            } else {
+                console.error("Received non-array data:", data);
+                setContent([]);
+            }
         } catch (error) {
             console.error("Failed to load content:", error);
             toast.error("Failed to load content");
@@ -66,12 +77,14 @@ export default function ContentLibraryPage() {
     };
 
     const getIcon = (type: string) => {
-        if (type.includes("video")) return <Video className="w-6 h-6 text-purple-400" />;
-        if (type.includes("audio")) return <Music className="w-6 h-6 text-pink-400" />;
+        const lowerType = (type || "").toLowerCase();
+        if (lowerType.includes("video")) return <Video className="w-6 h-6 text-purple-400" />;
+        if (lowerType.includes("audio")) return <Music className="w-6 h-6 text-pink-400" />;
         return <FileText className="w-6 h-6 text-blue-400" />;
     };
 
     const formatDate = (date: string) => {
+        if (!date) return "Unknown date";
         return new Date(date).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
@@ -79,24 +92,28 @@ export default function ContentLibraryPage() {
         });
     };
 
-    const formatFileSize = (bytes?: number) => {
+    const formatFileSize = (bytes?: any) => {
         if (!bytes) return "Unknown";
+        const numBytes = Number(bytes);
+        if (isNaN(numBytes)) return "Unknown";
+
         const k = 1024;
         const sizes = ["Bytes", "KB", "MB", "GB"];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+        const i = Math.floor(Math.log(numBytes) / Math.log(k));
+        return Math.round((numBytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
     };
 
     const filteredContent = content.filter((item) => {
         const matchesSearch =
-            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+            (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.description || "").toLowerCase().includes(searchQuery.toLowerCase());
 
+        const type = (item.type || "").toLowerCase();
         const matchesFilter =
             filterType === "all" ||
-            (filterType === "video" && item.type.includes("video")) ||
-            (filterType === "audio" && item.type.includes("audio")) ||
-            (filterType === "document" && !item.type.includes("video") && !item.type.includes("audio"));
+            (filterType === "video" && type.includes("video")) ||
+            (filterType === "audio" && type.includes("audio")) ||
+            (filterType === "document" && !type.includes("video") && !type.includes("audio"));
 
         return matchesSearch && matchesFilter;
     });
@@ -156,8 +173,8 @@ export default function ContentLibraryPage() {
                                     key={type}
                                     onClick={() => setFilterType(type)}
                                     className={`px-4 py-3 rounded-xl font-medium transition capitalize ${filterType === type
-                                            ? "bg-purple-600 text-white"
-                                            : "bg-white/10 text-gray-400 hover:bg-white/20"
+                                        ? "bg-purple-600 text-white"
+                                        : "bg-white/10 text-gray-400 hover:bg-white/20"
                                         }`}
                                 >
                                     {type}
