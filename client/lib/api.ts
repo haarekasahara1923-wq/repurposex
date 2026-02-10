@@ -114,7 +114,14 @@ export const authAPI = {
     },
 
     signup: async (data: SignupRequest): Promise<AuthResponse> => {
-        const response = await api.post('/api/v1/auth/register', data);
+        // Map firstName and lastName to fullName for the backend
+        const signupData = {
+            email: data.email,
+            password: data.password,
+            fullName: `${data.firstName} ${data.lastName}`.trim(),
+            countryCode: 'IN' // Default
+        };
+        const response = await api.post('/api/v1/auth/register', signupData);
         return response.data;
     },
 
