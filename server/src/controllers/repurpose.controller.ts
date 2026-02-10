@@ -13,16 +13,36 @@ export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
         }
 
         const {
-            contentAssetId,
-            jobType, // 'blog', 'linkedin', 'twitter_thread', 'instagram'
-            outputFormat,
+            contentId,
+            contentAssetId: bodyAssetId,
+            outputType,
+            jobType: bodyJobType,
+            tone,
             config = {}
         } = req.body;
+
+        const assetId = contentId || bodyAssetId;
+        const rawJobType = outputType || bodyJobType;
+
+        if (!assetId || !rawJobType) {
+            return res.status(400).json({
+                success: false,
+                message: 'Content ID and output type are required',
+                error: { code: 'INVALID_INPUT' }
+            });
+        }
+
+        // Map frontend types to backend types if necessary
+        let jobType = rawJobType;
+        if (rawJobType.includes('blog')) jobType = 'blog';
+        if (rawJobType.includes('linkedin')) jobType = 'linkedin';
+        if (rawJobType.includes('twitter')) jobType = 'twitter_thread';
+        if (rawJobType.includes('instagram')) jobType = 'instagram';
 
         // Verify content exists and belongs to user
         const content = await prisma.contentAsset.findFirst({
             where: {
-                id: contentAssetId,
+                id: assetId,
                 userId: req.user.id
             },
             include: {
@@ -33,41 +53,42 @@ export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
         if (!content) {
             return res.status(404).json({
                 success: false,
-                error: { code: 'CONTENT_NOT_FOUND', message: 'Content not found' }
+                message: 'Content not found',
+                error: { code: 'CONTENT_NOT_FOUND' }
             });
         }
 
         // Create job
         const job = await prisma.repurposingJob.create({
             data: {
-                contentAssetId,
+                contentAssetId: assetId,
                 userId: req.user.id,
                 jobType,
-                outputFormat,
-                config,
+                outputFormat: rawJobType,
+                config: { ...config, tone },
                 status: 'processing',
-                targetPlatforms: [outputFormat]
+                targetPlatforms: [rawJobType]
             }
         });
 
-        // Process job immediately (in production, queue this)
-        processRepurposingJob(job.id, content, jobType, config).catch(error => {
+        // Process job immediately
+        processRepurposingJob(job.id, content, jobType, { ...config, tone }).catch(error => {
             console.error('Job processing error:', error);
         });
 
         res.status(202).json({
             success: true,
-            data: {
-                jobId: job.id,
-                status: 'processing',
-                message: 'Repurposing job started'
-            }
+            id: job.id,
+            jobId: job.id,
+            status: 'processing',
+            message: 'Repurposing job started'
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Create repurposing job error:', error);
         res.status(500).json({
             success: false,
-            error: { code: 'JOB_CREATE_FAILED', message: 'Failed to create repurposing job' }
+            message: error.message || 'Failed to create repurposing job',
+            error: { code: 'JOB_CREATE_FAILED', details: error.toString() }
         });
     }
 };
@@ -111,14 +132,14 @@ export const getJobStatus = async (req: AuthRequest, res: Response) => {
 
         res.json({
             success: true,
-            data: {
-                jobId: job.id,
-                status: job.status,
-                progress: job.progress,
-                startedAt: job.startedAt,
-                completedAt: job.completedAt,
-                generatedContent: job.generatedContent
-            }
+            id: job.id,
+            jobId: job.id,
+            status: job.status,
+            progress: job.progress,
+            startedAt: job.startedAt,
+            completedAt: job.completedAt,
+            generatedContent: job.generatedContent,
+            result: job.generatedContent[0] || null
         });
     } catch (error) {
         console.error('Get job status error:', error);

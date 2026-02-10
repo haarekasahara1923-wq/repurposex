@@ -107,8 +107,11 @@ export default function RepurposePage() {
             setPollingInterval(interval);
         } catch (error: any) {
             console.error("Repurpose error:", error);
-            const message = error.response?.data?.message || "Failed to create job";
-            toast.error(message, { id: "repurpose" });
+            const data = error.response?.data;
+            const message = data?.message || data?.error?.message || "Failed to create job";
+            const details = data?.error?.details ? ` (${data.error.details})` : "";
+
+            toast.error(message + details, { id: "repurpose" });
             setProcessing(false);
         }
     };
@@ -203,8 +206,8 @@ export default function RepurposePage() {
                                         key={format.value}
                                         onClick={() => setOptions({ ...options, outputType: format.value })}
                                         className={`p-4 rounded-xl border-2 transition text-left ${options.outputType === format.value
-                                                ? "border-purple-500 bg-purple-500/20"
-                                                : "border-white/10 bg-white/5 hover:border-white/30"
+                                            ? "border-purple-500 bg-purple-500/20"
+                                            : "border-white/10 bg-white/5 hover:border-white/30"
                                             }`}
                                     >
                                         <div className="font-semibold text-white mb-1">{format.label}</div>
@@ -225,8 +228,8 @@ export default function RepurposePage() {
                                         key={tone.value}
                                         onClick={() => setOptions({ ...options, tone: tone.value })}
                                         className={`px-6 py-3 rounded-xl font-semibold transition ${options.tone === tone.value
-                                                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                                                : "bg-white/10 text-gray-300 hover:bg-white/20"
+                                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                                            : "bg-white/10 text-gray-300 hover:bg-white/20"
                                             }`}
                                     >
                                         {tone.label}
