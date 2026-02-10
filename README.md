@@ -263,25 +263,40 @@ POST   /api/v1/subscriptions/subscribe # Subscribe to plan
 
 ## 🚀 Deployment Guide
 
-### Frontend (Vercel)
+### 📚 Complete Deployment Documentation
+
+**New! Comprehensive Guides (February 2026):**
+- 🇮🇳 **[DEPLOYMENT_INSTRUCTIONS_HINDI.md](./DEPLOYMENT_INSTRUCTIONS_HINDI.md)** - पूरी Hindi/Hinglish deployment guide
+- ✅ **[ENV_VARIABLES_CHECKLIST.md](./ENV_VARIABLES_CHECKLIST.md)** - Step-by-step environment variables checklist
+- ⚡ **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - One-page quick reference card
+- 📋 **[DEPLOYMENT_INDEX.md](./DEPLOYMENT_INDEX.md)** - Navigation guide for all docs
+- 🔧 **[.env.example](./.env.example)** - Complete environment variables template
+
+### Quick Deployment
+
+**Frontend (Vercel):**
 1. Push code to GitHub
 2. Import repository in Vercel
-3. Set environment variables
-4. Deploy
+3. Set root directory: `client`
+4. Add environment variables
+5. Deploy
 
-### Backend (Railway)
+**Backend (Railway):**
 1. Create Railway project
-2. Add PostgreSQL database
-3. Set environment variables
-4. Deploy from GitHub
+2. Connect GitHub repo
+3. Set root directory: `server`
+4. Add environment variables
+5. Deploy from GitHub
 
-### Database (Neon)
+**Database (Neon):**
 1. Create Neon project
 2. Get connection string
 3. Update DATABASE_URL
-4. Run migrations
+4. Run migrations: `npx prisma db push`
 
-**Detailed guide:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+**Detailed guides:** 
+- English: [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+- Hindi/Hinglish: [DEPLOYMENT_INSTRUCTIONS_HINDI.md](./DEPLOYMENT_INSTRUCTIONS_HINDI.md) ⭐ **RECOMMENDED**
 
 ---
 
