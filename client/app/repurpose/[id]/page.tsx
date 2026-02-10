@@ -388,7 +388,12 @@ export default function RepurposePage() {
                         {/* Failed State */}
                         {job.status === "failed" && (
                             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
-                                <p className="text-red-300 font-semibold mb-4">Repurposing Failed</p>
+                                <p className="text-red-300 font-semibold mb-2">Repurposing Failed</p>
+                                {job.errorMessage && (
+                                    <p className="text-red-400/80 text-sm mb-4 bg-red-900/20 p-3 rounded-lg border border-red-900/30 font-mono">
+                                        Error: {job.errorMessage}
+                                    </p>
+                                )}
                                 <button
                                     onClick={() => {
                                         setJob(null);

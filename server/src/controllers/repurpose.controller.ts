@@ -137,6 +137,7 @@ export const getJobStatus = async (req: AuthRequest, res: Response) => {
             jobId: job.id,
             status: job.status,
             progress: job.progress,
+            errorMessage: job.errorMessage,
             startedAt: job.startedAt,
             completedAt: job.completedAt,
             generatedContent: job.generatedContent,

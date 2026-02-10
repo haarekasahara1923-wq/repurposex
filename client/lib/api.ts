@@ -102,6 +102,7 @@ export interface RepurposeJob {
     tone: string;
     status: string;
     progress: number;
+    errorMessage?: string;
     result?: any;
     createdAt: string;
 }
