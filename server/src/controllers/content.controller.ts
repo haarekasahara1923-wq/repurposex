@@ -99,11 +99,13 @@ export const getContentList = async (req: AuthRequest, res: Response) => {
             })
         ]);
 
-        // Just return the array for simplicity if frontend expects Array
-        // Or if it expects items, return items directly.
-        // Looking at frontend: data = await contentAPI.getAll(); setContent(data);
-        // It expects an array.
-        res.json(contents);
+        // BigInt (fileSize) needs string conversion for JSON serialization
+        const safeContents = contents.map(item => ({
+            ...item,
+            fileSize: item.fileSize ? item.fileSize.toString() : null
+        }));
+
+        res.json(safeContents);
     } catch (error) {
         console.error('Get content list error:', error);
         res.status(500).json({
@@ -142,7 +144,12 @@ export const getContentById = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        res.json({ success: true, data: content });
+        const safeContent = {
+            ...content,
+            fileSize: content.fileSize ? content.fileSize.toString() : null
+        };
+
+        res.json({ success: true, data: safeContent });
     } catch (error) {
         console.error('Get content error:', error);
         res.status(500).json({
