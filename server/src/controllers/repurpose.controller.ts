@@ -2,6 +2,7 @@ import { Response } from 'express';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth.middleware';
 import openaiService from '../services/openai.service';
+import geminiService from '../services/gemini.service';
 
 export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
     try {
@@ -176,13 +177,18 @@ async function processRepurposingJob(
         // Get or create analysis
         let transcript = content.analysis?.transcript || 'Sample content for demonstration';
 
+        // Select AI service
+        const useGemini = !!process.env.GEMINI_API_KEY;
+        const aiService = useGemini ? geminiService : openaiService;
+        console.log(`Using AI Service: ${useGemini ? 'Gemini' : 'OpenAI'}`);
+
         // Generate content based on job type
         let result;
         let generatedContents = [];
 
         switch (jobType) {
             case 'blog':
-                result = await openaiService.generateBlogPost(transcript, config.wordCount || 1500);
+                result = await aiService.generateBlogPost(transcript, config.wordCount || 1500);
                 generatedContents.push({
                     title: result.title,
                     contentText: result.content,
@@ -193,7 +199,7 @@ async function processRepurposingJob(
                 break;
 
             case 'linkedin':
-                result = await openaiService.generateSocialPost(transcript, 'linkedin', config.tone || 'professional');
+                result = await aiService.generateSocialPost(transcript, 'linkedin', config.tone || 'professional');
                 generatedContents.push({
                     title: 'LinkedIn Post',
                     contentText: result.content,
@@ -206,7 +212,7 @@ async function processRepurposingJob(
                 break;
 
             case 'twitter_thread':
-                result = await openaiService.generateTwitterThread(transcript, config.threadLength || 10);
+                result = await aiService.generateTwitterThread(transcript, config.threadLength || 10);
                 generatedContents.push({
                     title: 'Twitter Thread',
                     contentText: result.tweets?.join('\n\n') || '',
@@ -217,7 +223,7 @@ async function processRepurposingJob(
                 break;
 
             case 'instagram':
-                result = await openaiService.generateSocialPost(transcript, 'instagram', config.tone || 'casual');
+                result = await aiService.generateSocialPost(transcript, 'instagram', config.tone || 'casual');
                 generatedContents.push({
                     title: 'Instagram Caption',
                     contentText: result.content,

@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import fs from 'fs/promises';
 import path from 'path';
 import openaiService from '../services/openai.service';
+import geminiService from '../services/gemini.service';
 
 export const uploadContent = async (req: AuthRequest, res: Response) => {
     try {
@@ -200,8 +201,13 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
             textToAnalyze = await fs.readFile(content.fileUrl, 'utf-8');
         }
 
-        // Analyze with OpenAI
-        const analysis = await openaiService.analyzeContent(textToAnalyze);
+        // Select AI service
+        const useGemini = !!process.env.GEMINI_API_KEY;
+        const aiService = useGemini ? geminiService : openaiService;
+        console.log(`Using AI Service for Analysis: ${useGemini ? 'Gemini' : 'OpenAI'} `);
+
+        // Analyze with AI
+        const analysis = await aiService.analyzeContent(textToAnalyze);
 
         // Store analysis
         const contentAnalysis = await prisma.contentAnalysis.create({
