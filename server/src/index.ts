@@ -96,8 +96,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // SERVER START
 // ========================================
 
-app.listen(PORT, () => {
-    console.log(`
+// Only start server if not in Vercel serverless environment
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`
   ╔═══════════════════════════════════════╗
   ║   RepurposeX API Server Started       ║
   ╠═══════════════════════════════════════╣
@@ -106,6 +108,9 @@ app.listen(PORT, () => {
   ║   URL: http://localhost:${PORT.toString().padEnd(18)}║
   ╚═══════════════════════════════════════╝
   `);
-});
+    });
+}
 
+// Export for Vercel serverless
 export default app;
+
