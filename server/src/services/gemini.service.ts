@@ -1,6 +1,21 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const apiKey = process.env.GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// Helper to get model with fallback
+const getModel = () => {
+    // Masked log for debugging in Vercel
+    const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : "MISSING";
+    console.log(`Initializing Gemini with Key: ${maskedKey}`);
+
+    try {
+        // We'll return the most standard one, and the call will handle specific errors
+        return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    } catch (e) {
+        return genAI.getGenerativeModel({ model: "gemini-pro" });
+    }
+};
 
 export interface ContentGenerationResult {
     content: string;
@@ -16,7 +31,7 @@ export interface ContentGenerationResult {
 
 export const analyzeContent = async (text: string): Promise<any> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = getModel();
         const prompt = `Analyze the following content and provide:
 1. 3-5 main topics
 2. 10-15 relevant keywords
@@ -61,7 +76,7 @@ export const generateSocialPost = async (
     tone: 'professional' | 'casual' | 'viral' | 'hinglish' = 'professional'
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = getModel();
 
         const platformGuidelines = {
             linkedin: {
@@ -130,7 +145,7 @@ export const generateBlogPost = async (
     wordCount: number = 1000
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = getModel();
         const prompt = `Transform the following content into a comprehensive blog post.
 
 Requirements:
@@ -167,7 +182,7 @@ export const generateTwitterThread = async (
     threadLength: number = 10
 ): Promise<ContentGenerationResult> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = getModel();
         const prompt = `Create a ${threadLength}-tweet thread from this content.
 
 Requirements:
