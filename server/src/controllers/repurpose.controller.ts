@@ -5,6 +5,7 @@ import openaiService from '../services/openai.service';
 
 export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
     try {
+        console.log('Repurposing job request body:', req.body);
         if (!req.user) {
             return res.status(401).json({
                 success: false,

@@ -149,12 +149,13 @@ export const getContentById = async (req: AuthRequest, res: Response) => {
             fileSize: content.fileSize ? content.fileSize.toString() : null
         };
 
-        res.json({ success: true, data: safeContent });
+        res.json(safeContent);
     } catch (error) {
         console.error('Get content error:', error);
         res.status(500).json({
             success: false,
-            error: { code: 'FETCH_FAILED', message: 'Failed to fetch content' }
+            message: 'Failed to fetch content',
+            error: { code: 'FETCH_FAILED' }
         });
     }
 };
@@ -164,7 +165,8 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
-                error: { code: 'UNAUTHORIZED', message: 'Not authenticated' }
+                message: 'Not authenticated',
+                error: { code: 'UNAUTHORIZED' }
             });
         }
 
@@ -181,7 +183,8 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
         if (!content) {
             return res.status(404).json({
                 success: false,
-                error: { code: 'NOT_FOUND', message: 'Content not found' }
+                message: 'Content not found',
+                error: { code: 'NOT_FOUND' }
             });
         }
 
@@ -216,10 +219,8 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
 
         res.json({
             success: true,
-            data: {
-                contentId: content.id,
-                analysis: contentAnalysis
-            }
+            contentId: content.id,
+            analysis: contentAnalysis
         });
     } catch (error) {
         console.error('Analyze content error:', error);
