@@ -14,6 +14,9 @@ import {
     LogOut,
     Crown,
     CheckCircle,
+    Users,
+    Mail,
+    ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
@@ -94,6 +97,31 @@ export default function SettingsPage() {
             }
         } catch (error) {
             toast.error('Payment failed to start', { id: 'pay' });
+        }
+    };
+
+    const [inviteData, setInviteData] = useState({
+        email: "",
+        clientName: "",
+    });
+
+    const handleInviteClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        toast.loading("Sending invitation...", { id: "invite" });
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const organizationId = user?.organizationId || 'org-123'; // Fallback for demo
+
+            await axios.post(`${apiUrl}/api/v1/agency/invite-client`, {
+                ...inviteData,
+                organizationId
+            }, { headers: { Authorization: `Bearer ${token}` } });
+
+            toast.success(`Invite sent to ${inviteData.email}!`, { id: "invite" });
+            setInviteData({ email: "", clientName: "" });
+        } catch (error) {
+            toast.error("Failed to send invitation", { id: "invite" });
         }
     };
 
@@ -188,6 +216,17 @@ export default function SettingsPage() {
                             >
                                 <Shield className="w-5 h-5" />
                                 Security
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab("agency")}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "agency"
+                                    ? "bg-purple-600 text-white"
+                                    : "text-gray-300 hover:bg-white/10"
+                                    }`}
+                            >
+                                <Users className="w-5 h-5" />
+                                Agency / Clients
                             </button>
 
                             <button
@@ -615,6 +654,86 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Agency Tab */}
+            {activeTab === "agency" && (
+                <div className="max-w-4xl mx-auto px-4 mt-8">
+                    <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-8 mb-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">Agency Portal Settings</h2>
+                                <p className="text-gray-400">Invite and manage your white-label clients</p>
+                            </div>
+                            <div className="bg-purple-600/20 text-purple-400 px-3 py-1 rounded-full text-xs font-medium border border-purple-500/30">
+                                Agency Plan Active
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleInviteClient} className="max-w-xl space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Client Full Name
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={inviteData.clientName}
+                                    onChange={(e) => setInviteData({ ...inviteData, clientName: e.target.value })}
+                                    placeholder="e.g. John Doe Enterprises"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Client Email Address
+                                </label>
+                                <div className="relative">
+                                    <Mail className="absolute left-4 top-3.5 w-5 h-5 text-gray-500" />
+                                    <input
+                                        type="email"
+                                        required
+                                        value={inviteData.email}
+                                        onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
+                                        placeholder="client@example.com"
+                                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-2"
+                            >
+                                Send Invitation Email
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-8">
+                        <h3 className="text-xl font-bold text-white mb-6">Active Clients</h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                        JD
+                                    </div>
+                                    <div>
+                                        <div className="text-white font-medium">John Doe Enterprises</div>
+                                        <div className="text-xs text-gray-500">Active since Feb 10, 2026</div>
+                                    </div>
+                                </div>
+                                <button className="text-gray-400 hover:text-white text-sm transition font-medium">
+                                    View Portal
+                                </button>
+                            </div>
+                            <div className="p-12 text-center border-2 border-dashed border-white/10 rounded-2xl">
+                                <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                                <p className="text-gray-500">Looking to scale? Invite your first client to start automating their content strategy. </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
