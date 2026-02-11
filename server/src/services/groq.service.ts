@@ -7,8 +7,8 @@ const groq = new Groq({
 
 // Runtime fallback mechanism for Groq models
 const generateWithFallback = async (prompt: string) => {
-    // Priority: Llama-3-70b (Smartest) -> Llama-3-8b (Fastest) -> Mixtral (Consistent)
-    const models = ["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768"];
+    // Priority: Llama-3.3-70b (Top) -> Llama-3.1-70b -> Llama-3.1-8b (Fast)
+    const models = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192"];
     let lastError: any;
 
     if (!apiKey) {
