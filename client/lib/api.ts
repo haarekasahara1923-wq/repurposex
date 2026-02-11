@@ -48,6 +48,7 @@ export interface User {
     lastName: string;
     createdAt: string;
     updatedAt: string;
+    organizationId?: string;
 }
 
 export interface LoginRequest {

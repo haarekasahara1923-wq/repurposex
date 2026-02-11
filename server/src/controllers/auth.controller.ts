@@ -260,7 +260,12 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
                 timezone: true,
                 language: true,
                 emailVerified: true,
-                createdAt: true
+                createdAt: true,
+                organizations: {
+                    where: { status: 'active' },
+                    take: 1,
+                    select: { organizationId: true }
+                }
             }
         });
 
@@ -274,7 +279,13 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        res.json(user);
+        const userData = {
+            ...user,
+            organizationId: user.organizations[0]?.organizationId,
+            organizations: undefined // Remove from clean response
+        };
+
+        res.json(userData);
     } catch (error) {
         console.error('Get current user error:', error);
         return res.status(500).json({
