@@ -40,6 +40,16 @@ export default function OnboardingPage() {
     });
 
     useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                businessName: user.businessName || prev.businessName,
+                businessType: user.role === 'agency' ? 'agency' : prev.businessType
+            }));
+        }
+    }, [user]);
+
+    useEffect(() => {
         if (!isAuthenticated) {
             router.push("/login");
         }

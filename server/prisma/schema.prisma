@@ -20,6 +20,8 @@ model User {
   fullName      String
   avatarUrl     String?
   phone         String?
+  whatsapp      String?
+  role          String    @default("client") // agency, client
   countryCode   String    @default("IN")
   timezone      String    @default("Asia/Kolkata")
   language      String    @default("en")

@@ -21,20 +21,23 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { authAPI } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 
 export default function SettingsPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, logout, isAuthenticated } = useAuth();
 
-    const [activeTab, setActiveTab] = useState("profile");
+    const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
     const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
     const [profile, setProfile] = useState({
         firstName: user?.firstName || "",
         lastName: user?.lastName || "",
         email: user?.email || "",
-        phone: "",
-        company: "",
-        website: "",
+        phone: user?.phone || "",
+        businessName: user?.businessName || "",
+        whatsapp: user?.whatsapp || "",
     });
 
     const [notifications, setNotifications] = useState({
@@ -56,8 +59,20 @@ export default function SettingsPage() {
         return null;
     }
 
-    const handleSaveProfile = () => {
-        toast.success("Profile updated successfully!");
+    const handleSaveProfile = async () => {
+        toast.loading("Updating profile...", { id: "profile" });
+        try {
+            await authAPI.updateProfile({
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                phone: profile.phone,
+                businessName: profile.businessName,
+                whatsapp: profile.whatsapp
+            });
+            toast.success("Profile updated successfully!", { id: "profile" });
+        } catch (error) {
+            toast.error("Failed to update profile", { id: "profile" });
+        }
     };
 
     const handleSaveNotifications = () => {
@@ -217,16 +232,18 @@ export default function SettingsPage() {
                                 Security
                             </button>
 
-                            <button
-                                onClick={() => setActiveTab("agency")}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "agency"
-                                    ? "bg-purple-600 text-white"
-                                    : "text-gray-300 hover:bg-white/10"
-                                    }`}
-                            >
-                                <Users className="w-5 h-5" />
-                                Agency / Clients
-                            </button>
+                            {user?.role === 'agency' && (
+                                <button
+                                    onClick={() => setActiveTab("agency")}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "agency"
+                                        ? "bg-purple-600 text-white"
+                                        : "text-gray-300 hover:bg-white/10"
+                                        }`}
+                                >
+                                    <Users className="w-5 h-5" />
+                                    Agency / Clients
+                                </button>
+                            )}
 
                             <button
                                 onClick={handleLogout}
@@ -297,26 +314,25 @@ export default function SettingsPage() {
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Company
+                                            Business Name
                                         </label>
                                         <input
                                             type="text"
-                                            value={profile.company}
-                                            onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                                            placeholder="Your company name"
+                                            value={profile.businessName}
+                                            onChange={(e) => setProfile({ ...profile, businessName: e.target.value })}
+                                            placeholder="Your business name"
                                             className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Website
+                                            WhatsApp No.
                                         </label>
                                         <input
-                                            type="url"
-                                            value={profile.website}
-                                            onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                                            placeholder="https://yourwebsite.com"
+                                            type="tel"
+                                            value={profile.whatsapp}
+                                            onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
+                                            placeholder="+91..."
                                             className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         />
                                     </div>

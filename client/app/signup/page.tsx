@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import toast from "react-hot-toast";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -15,6 +16,10 @@ export default function SignupPage() {
         lastName: "",
         email: "",
         password: "",
+        role: "client" as "agency" | "client",
+        businessName: "",
+        phone: "",
+        whatsapp: "",
         termsAccepted: false,
     });
 
@@ -22,14 +27,23 @@ export default function SignupPage() {
         e.preventDefault();
 
         if (!formData.termsAccepted) {
-            alert('Please accept the Terms of Service and Privacy Policy');
+            toast.error('Please accept the Terms of Service and Privacy Policy');
             return;
         }
 
         setLoading(true);
 
         try {
-            await signup(formData.email, formData.password, formData.firstName, formData.lastName);
+            await signup(
+                formData.email,
+                formData.password,
+                formData.firstName,
+                formData.lastName,
+                formData.role,
+                formData.role === 'agency' ? formData.businessName : undefined,
+                formData.phone,
+                formData.role === 'agency' ? formData.whatsapp : undefined
+            );
             router.push('/onboarding');
         } catch (error) {
             console.error('Signup error:', error);
@@ -38,8 +52,9 @@ export default function SignupPage() {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -125,9 +140,27 @@ export default function SignupPage() {
                         <p className="text-gray-400 mb-6">Get started with your free trial today</p>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
+                            {/* Role Toggle */}
+                            <div className="bg-white/5 p-1 rounded-xl border border-white/10 grid grid-cols-2 mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, role: 'client' })}
+                                    className={`py-2 rounded-lg text-sm font-semibold transition ${formData.role === 'client' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    Individual/Client
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, role: 'agency' })}
+                                    className={`py-2 rounded-lg text-sm font-semibold transition ${formData.role === 'agency' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    Agency
+                                </button>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
+                                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-1">
                                         First name
                                     </label>
                                     <input
@@ -138,12 +171,12 @@ export default function SignupPage() {
                                         value={formData.firstName}
                                         onChange={handleChange}
                                         disabled={loading}
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition disabled:opacity-50"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
                                         placeholder="John"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
+                                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-1">
                                         Last name
                                     </label>
                                     <input
@@ -154,14 +187,33 @@ export default function SignupPage() {
                                         value={formData.lastName}
                                         onChange={handleChange}
                                         disabled={loading}
-                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition disabled:opacity-50"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
                                         placeholder="Doe"
                                     />
                                 </div>
                             </div>
 
+                            {formData.role === 'agency' && (
+                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <label htmlFor="businessName" className="block text-sm font-medium text-gray-300 mb-1">
+                                        Business Name
+                                    </label>
+                                    <input
+                                        id="businessName"
+                                        name="businessName"
+                                        type="text"
+                                        required
+                                        value={formData.businessName}
+                                        onChange={handleChange}
+                                        disabled={loading}
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
+                                        placeholder="Your Agency Name"
+                                    />
+                                </div>
+                            )}
+
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
                                     Email address
                                 </label>
                                 <input
@@ -172,13 +224,52 @@ export default function SignupPage() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     disabled={loading}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition disabled:opacity-50"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
                                     placeholder="you@example.com"
                                 />
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1">
+                                        Mobile No.
+                                    </label>
+                                    <input
+                                        id="phone"
+                                        name="phone"
+                                        type="tel"
+                                        required
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        disabled={loading}
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
+                                        placeholder="+91..."
+                                    />
+                                </div>
+                                {formData.role === 'agency' ? (
+                                    <div>
+                                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-300 mb-1">
+                                            WhatsApp No.
+                                        </label>
+                                        <input
+                                            id="whatsapp"
+                                            name="whatsapp"
+                                            type="tel"
+                                            required
+                                            value={formData.whatsapp}
+                                            onChange={handleChange}
+                                            disabled={loading}
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
+                                            placeholder="+91..."
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="invisible"></div>
+                                )}
+                            </div>
+
                             <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
                                     Password
                                 </label>
                                 <input
@@ -190,10 +281,9 @@ export default function SignupPage() {
                                     value={formData.password}
                                     onChange={handleChange}
                                     disabled={loading}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition disabled:opacity-50"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition disabled:opacity-50"
                                     placeholder="••••••••"
                                 />
-                                <p className="text-xs text-gray-400 mt-1">Must be at least 8 characters</p>
                             </div>
 
                             <div>

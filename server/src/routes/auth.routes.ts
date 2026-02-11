@@ -3,7 +3,8 @@ import {
     register,
     login,
     getCurrentUser,
-    refreshToken
+    refreshToken,
+    updateProfile
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -16,5 +17,6 @@ router.post('/refresh', refreshToken);
 
 // Protected routes
 router.get('/me', authenticate, getCurrentUser);
+router.put('/profile', authenticate, updateProfile);
 
 export default router;

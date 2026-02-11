@@ -46,6 +46,11 @@ export interface User {
     email: string;
     firstName: string;
     lastName: string;
+    role: 'agency' | 'client';
+    businessName?: string;
+    phone?: string;
+    whatsapp?: string;
+    avatarUrl?: string;
     createdAt: string;
     updatedAt: string;
     organizationId?: string;
@@ -61,6 +66,10 @@ export interface SignupRequest {
     password: string;
     firstName: string;
     lastName: string;
+    role: 'agency' | 'client';
+    businessName?: string;
+    phone?: string;
+    whatsapp?: string;
 }
 
 export interface AuthResponse {
@@ -123,6 +132,10 @@ export const authAPI = {
             email: data.email,
             password: data.password,
             fullName: `${data.firstName} ${data.lastName}`.trim(),
+            role: data.role,
+            businessName: data.businessName,
+            phone: data.phone,
+            whatsapp: data.whatsapp,
             countryCode: 'IN' // Default
         };
         const response = await api.post('/api/v1/auth/register', signupData);
@@ -131,6 +144,11 @@ export const authAPI = {
 
     getCurrentUser: async (): Promise<User> => {
         const response = await api.get('/api/v1/auth/me');
+        return response.data;
+    },
+
+    updateProfile: async (data: Partial<User>): Promise<User> => {
+        const response = await api.put('/api/v1/auth/profile', data);
         return response.data;
     },
 

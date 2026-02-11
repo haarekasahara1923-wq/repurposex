@@ -14,6 +14,10 @@ const registerSchema = z.object({
     email: z.string().email('Invalid email address'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     fullName: z.string().min(2, 'Full name is required'),
+    role: z.enum(['agency', 'client']).default('client'),
+    businessName: z.string().optional(),
+    phone: z.string().optional(),
+    whatsapp: z.string().optional(),
     countryCode: z.string().optional().default('IN')
 });
 
@@ -70,21 +74,48 @@ export const register = async (req: Request, res: Response) => {
         // Hash password
         const passwordHash = await bcrypt.hash(validatedData.password, 12);
 
-        // Create user
-        const user = await prisma.user.create({
-            data: {
-                email: validatedData.email,
-                passwordHash,
-                fullName: validatedData.fullName,
-                countryCode: validatedData.countryCode
-            },
-            select: {
-                id: true,
-                email: true,
-                fullName: true,
-                createdAt: true
+        // Create user and organization in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            // Create user
+            const user = await tx.user.create({
+                data: {
+                    email: validatedData.email,
+                    passwordHash,
+                    fullName: validatedData.fullName,
+                    role: validatedData.role,
+                    phone: validatedData.phone,
+                    whatsapp: validatedData.whatsapp,
+                    countryCode: validatedData.countryCode
+                }
+            });
+
+            // If agency, create organization
+            let organization = null;
+            if (validatedData.role === 'agency' && validatedData.businessName) {
+                organization = await tx.organization.create({
+                    data: {
+                        name: validatedData.businessName,
+                        slug: validatedData.businessName.toLowerCase().replace(/ /g, '-'),
+                        ownerId: user.id,
+                        type: 'agency'
+                    }
+                });
+
+                // Add user as owner member
+                await tx.organizationMember.create({
+                    data: {
+                        organizationId: organization.id,
+                        userId: user.id,
+                        role: 'owner',
+                        status: 'active'
+                    }
+                });
             }
+
+            return { user, organization };
         });
+
+        const { user } = result;
 
         // Generate tokens
         const { accessToken, refreshToken } = generateTokens(user.id, user.email);
@@ -107,7 +138,15 @@ export const register = async (req: Request, res: Response) => {
 
         res.status(201).json({
             success: true,
-            user,
+            user: {
+                id: user.id,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+                phone: user.phone,
+                whatsapp: user.whatsapp,
+                createdAt: user.createdAt
+            },
             token: accessToken,
             refreshToken,
             expiresIn: 3600
@@ -208,7 +247,10 @@ export const login = async (req: Request, res: Response) => {
                 id: user.id,
                 email: user.email,
                 fullName: user.fullName,
-                avatarUrl: user.avatarUrl
+                avatarUrl: user.avatarUrl,
+                role: user.role,
+                phone: user.phone,
+                whatsapp: user.whatsapp
             },
             token: accessToken,
             refreshToken,
@@ -256,6 +298,9 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
                 email: true,
                 fullName: true,
                 avatarUrl: true,
+                role: true,
+                phone: true,
+                whatsapp: true,
                 countryCode: true,
                 timezone: true,
                 language: true,
@@ -264,7 +309,12 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
                 organizations: {
                     where: { status: 'active' },
                     take: 1,
-                    select: { organizationId: true }
+                    select: {
+                        organizationId: true,
+                        organization: {
+                            select: { name: true }
+                        }
+                    }
                 }
             }
         });
@@ -282,6 +332,7 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
         const userData = {
             ...user,
             organizationId: user.organizations[0]?.organizationId,
+            businessName: user.organizations[0]?.organization?.name,
             organizations: undefined // Remove from clean response
         };
 
@@ -364,6 +415,77 @@ export const refreshToken = async (req: Request, res: Response) => {
             error: {
                 code: 'TOKEN_REFRESH_FAILED',
                 message: 'Failed to refresh token'
+            }
+        });
+    }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: {
+                    code: 'UNAUTHORIZED',
+                    message: 'Not authenticated'
+                }
+            });
+        }
+
+        const { firstName, lastName, phone, businessName, whatsapp, avatarUrl } = req.body;
+
+        let fullName = undefined;
+        if (firstName || lastName) {
+            const currentUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+            const currentParts = currentUser?.fullName.split(' ') || [];
+            const fName = firstName || currentParts[0] || '';
+            const lName = lastName || (currentParts.length > 1 ? currentParts.slice(1).join(' ') : '');
+            fullName = `${fName} ${lName}`.trim();
+        }
+
+        const user = await prisma.user.update({
+            where: { id: req.user.id },
+            data: {
+                fullName: fullName || undefined,
+                phone,
+                whatsapp,
+                avatarUrl,
+            }
+        });
+
+        // Update organization name if businessName is provided and user is owner
+        if (businessName && user.role === 'agency') {
+            const membership = await prisma.organizationMember.findFirst({
+                where: { userId: user.id, role: 'owner' }
+            });
+
+            if (membership) {
+                await prisma.organization.update({
+                    where: { id: membership.organizationId },
+                    data: { name: businessName }
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            user: {
+                id: user.id,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+                phone: user.phone,
+                whatsapp: user.whatsapp,
+                avatarUrl: user.avatarUrl
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        return res.status(500).json({
+            success: false,
+            error: {
+                code: 'UPDATE_FAILED',
+                message: 'Failed to update profile'
             }
         });
     }

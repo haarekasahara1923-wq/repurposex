@@ -3,14 +3,28 @@
 import Link from "next/link";
 import {
     Sparkles, Upload, Video, FileText, BarChart, Settings,
-    LogOut, Menu, X, Plus, TrendingUp, Clock, CheckCircle, Building2
+    LogOut, Menu, X, Plus, TrendingUp, Clock, CheckCircle, Building2, Users
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
+
+    const getInitials = () => {
+        if (user?.role === 'agency' && user.businessName) {
+            return user.businessName.substring(0, 2).toUpperCase();
+        }
+        return `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || 'UX';
+    };
+
+    const getUserName = () => {
+        if (user?.role === 'agency' && user.businessName) {
+            return user.businessName;
+        }
+        return `${user?.firstName} ${user?.lastName}`;
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -40,9 +54,18 @@ export default function DashboardPage() {
                                 <span className="hidden sm:inline">New Content</span>
                             </Link>
 
-                            <button className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                                JD
-                            </button>
+                            <div className="flex items-center gap-3 bg-white/5 pl-4 pr-1 py-1 rounded-full border border-white/10">
+                                <span className="text-sm font-medium text-white hidden sm:inline">
+                                    {getUserName()}
+                                </span>
+                                {user?.avatarUrl ? (
+                                    <img src={user.avatarUrl} alt="Profile" className="w-8 h-8 rounded-full border-2 border-white/20" />
+                                ) : (
+                                    <button className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 ring-white/20">
+                                        {getInitials()}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -77,10 +100,17 @@ export default function DashboardPage() {
                             <span>Analytics</span>
                         </Link>
 
-                        <Link href="/agency" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition border-t border-white/5 mt-2 pt-2">
-                            <Building2 className="w-5 h-5 text-purple-400" />
-                            <span>Agency Portal</span>
-                        </Link>
+                        {user?.role === 'agency' ? (
+                            <Link href="/agency" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition border-t border-white/5 mt-2 pt-2">
+                                <Building2 className="w-5 h-5 text-purple-400" />
+                                <span>Agency Portal</span>
+                            </Link>
+                        ) : (
+                            <Link href="/settings?tab=agency" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition border-t border-white/5 mt-2 pt-2">
+                                <Users className="w-5 h-5 text-purple-400" />
+                                <span>Invite Agency</span>
+                            </Link>
+                        )}
 
                         <div className="pt-4 mt-4 border-t border-white/10">
                             <Link href="/settings" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
@@ -161,6 +191,14 @@ export default function DashboardPage() {
                                 <h3 className="text-xl font-bold text-white mb-2">Schedule Posts</h3>
                                 <p className="text-gray-400">Plan and auto-publish to all platforms</p>
                             </Link>
+
+                            {user?.role === 'agency' && (
+                                <Link href="/settings?tab=agency" className="group bg-gradient-to-br from-yellow-600/20 to-orange-600/20 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:border-yellow-500/50 transition">
+                                    <Users className="w-12 h-12 text-yellow-400 mb-4 group-hover:scale-110 transition" />
+                                    <h3 className="text-xl font-bold text-white mb-2">Invite Client</h3>
+                                    <p className="text-gray-400">Add new clients to your agency portal</p>
+                                </Link>
+                            )}
                         </div>
                     </div>
 
