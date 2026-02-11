@@ -59,13 +59,34 @@ app.use(limiter); // Apply globally instead of limiting to /api/ path which migh
 // ROUTES
 // ========================================
 
+import prisma from './config/database';
+
 // Health check
-app.get('/health', (req: Request, res: Response) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
-    });
+app.get('/health', async (req: Request, res: Response) => {
+    try {
+        // Check DB connection
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV || 'development',
+            database: 'connected',
+            env_check: {
+                JWT_SECRET: !!process.env.JWT_SECRET,
+                DATABASE_URL: !!process.env.DATABASE_URL,
+                RESEND_API_KEY: !!process.env.RESEND_API_KEY
+            }
+        });
+    } catch (error: any) {
+        console.error('Health check failed:', error);
+        res.status(503).json({
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV || 'development',
+            database: 'disconnected',
+            error: error.message
+        });
+    }
 });
 
 // API routes
@@ -84,7 +105,7 @@ app.use((req: Request, res: Response) => {
         success: false,
         error: {
             code: 'NOT_FOUND',
-            message: 'Route not found'
+            message: `Route not found: ${req.method} ${req.url}`
         }
     });
 });
@@ -98,7 +119,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
         error: {
             code: err.code || 'INTERNAL_ERROR',
             message: err.message || 'An internal server error occurred',
-            ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+            stack: err.stack // Exposed for debugging
         }
     });
 });
