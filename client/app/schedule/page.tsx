@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -33,6 +33,12 @@ export default function SchedulePage() {
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [view, setView] = useState<"calendar" | "list">("list");
     const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([
         {
@@ -60,6 +66,8 @@ export default function SchedulePage() {
         platform: "linkedin",
         scheduledFor: "",
     });
+
+    if (!mounted) return null;
 
     if (!isAuthenticated) {
         router.push("/login");
@@ -152,8 +160,8 @@ export default function SchedulePage() {
                         <button
                             onClick={() => setView("list")}
                             className={`px-4 py-2 rounded-lg font-medium transition ${view === "list"
-                                    ? "bg-purple-600 text-white"
-                                    : "bg-white/10 text-gray-400 hover:bg-white/20"
+                                ? "bg-purple-600 text-white"
+                                : "bg-white/10 text-gray-400 hover:bg-white/20"
                                 }`}
                         >
                             List View
@@ -161,8 +169,8 @@ export default function SchedulePage() {
                         <button
                             onClick={() => setView("calendar")}
                             className={`px-4 py-2 rounded-lg font-medium transition ${view === "calendar"
-                                    ? "bg-purple-600 text-white"
-                                    : "bg-white/10 text-gray-400 hover:bg-white/20"
+                                ? "bg-purple-600 text-white"
+                                : "bg-white/10 text-gray-400 hover:bg-white/20"
                                 }`}
                         >
                             Calendar View
@@ -242,10 +250,10 @@ export default function SchedulePage() {
                                                         <h3 className="text-lg font-semibold text-white">{post.title}</h3>
                                                         <span
                                                             className={`px-3 py-1 rounded-full text-xs font-medium ${post.status === "scheduled"
-                                                                    ? "bg-yellow-500/20 text-yellow-300"
-                                                                    : post.status === "published"
-                                                                        ? "bg-green-500/20 text-green-300"
-                                                                        : "bg-red-500/20 text-red-300"
+                                                                ? "bg-yellow-500/20 text-yellow-300"
+                                                                : post.status === "published"
+                                                                    ? "bg-green-500/20 text-green-300"
+                                                                    : "bg-red-500/20 text-red-300"
                                                                 }`}
                                                         >
                                                             {post.status}

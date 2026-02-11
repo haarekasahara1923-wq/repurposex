@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,14 @@ export default function AgencyDashboard() {
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
 
     if (!isAuthenticated) {
         router.push("/login");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -24,12 +24,17 @@ import toast from "react-hot-toast";
 import { authAPI } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 
-export default function SettingsPage() {
+function SettingsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, logout, isAuthenticated } = useAuth();
 
-    const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
+    const [activeTab, setActiveTab] = useState("profile");
+
+    useEffect(() => {
+        const tab = searchParams.get("tab");
+        if (tab) setActiveTab(tab);
+    }, [searchParams]);
     const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
     const [profile, setProfile] = useState({
         firstName: user?.firstName || "",
@@ -100,13 +105,16 @@ export default function SettingsPage() {
                 toast.success('Razorpay Order Created!', { id: 'pay' });
                 // In production: open Razorpay checkout Modal
             } else if (gateway === 'stripe') {
+                const origin = typeof window !== 'undefined' ? window.location.origin : '';
                 const { data } = await axios.post(`${apiUrl}/api/v1/payments/stripe/create-session`, {
                     planId: planSlug,
-                    successUrl: window.location.origin + '/dashboard?payment=success',
-                    cancelUrl: window.location.origin + '/settings?payment=cancel'
+                    successUrl: origin + '/dashboard?payment=success',
+                    cancelUrl: origin + '/settings?payment=cancel'
                 }, { headers: { Authorization: `Bearer ${token}` } });
 
-                window.location.href = data.url;
+                if (typeof window !== 'undefined') {
+                    window.location.href = data.url;
+                }
             } else {
                 toast.success(`${gateway} flow initiated (Sandbox)`, { id: 'pay' });
             }
@@ -750,5 +758,17 @@ export default function SettingsPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function SettingsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+        }>
+            <SettingsContent />
+        </Suspense>
     );
 }

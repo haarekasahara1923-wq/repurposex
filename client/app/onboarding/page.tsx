@@ -23,6 +23,12 @@ export default function OnboardingPage() {
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [formData, setFormData] = useState({
         businessName: "",
         businessType: "individual",
@@ -54,6 +60,8 @@ export default function OnboardingPage() {
             router.push("/login");
         }
     }, [isAuthenticated, router]);
+
+    if (!mounted) return null;
 
     const handleNext = () => {
         if (currentStep < steps.length - 1) {

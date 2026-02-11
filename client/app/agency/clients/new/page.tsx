@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,6 +11,13 @@ import {
 export default function NewClientPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -18,6 +25,8 @@ export default function NewClientPage() {
         website: "",
         brandColor: "#7c3aed",
     });
+
+    if (!mounted) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

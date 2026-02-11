@@ -79,7 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         toast.success('Logged out successfully');
         // Redirect to home page immediately
-        window.location.href = '/';
+        if (typeof window !== 'undefined') {
+            window.location.href = '/';
+        }
     };
 
     return (

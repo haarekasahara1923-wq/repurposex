@@ -35,11 +35,19 @@ export default function RepurposePage() {
     const [job, setJob] = useState<RepurposeJob | null>(null);
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [options, setOptions] = useState({
         outputType: "linkedin_post",
         tone: "professional",
         platforms: [] as string[],
     });
+
+    if (!mounted) return null;
 
     if (!isAuthenticated) {
         router.push("/login");

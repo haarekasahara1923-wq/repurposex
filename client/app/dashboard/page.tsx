@@ -1,16 +1,55 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-    Sparkles, Upload, Video, FileText, BarChart, Settings,
-    LogOut, Menu, X, Plus, TrendingUp, Clock, CheckCircle, Building2, Users
+    Sparkles,
+    LayoutDashboard,
+    Users,
+    FileText,
+    Calendar,
+    Settings,
+    LogOut,
+    Plus,
+    BarChart3,
+    ArrowRight,
+    TrendingUp,
+    CheckCircle,
+    AlertCircle,
+    Search,
+    Bell,
+    Menu,
+    X,
+    Video, // Kept from original for Content Library
+    BarChart, // Kept from original for Dashboard icon
+    Clock, // Kept from original for Schedule
+    Building2, // Kept from original for Agency Portal
+    Upload,
 } from "lucide-react";
-import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { contentAPI } from "@/lib/api";
 
 export default function DashboardPage() {
+    const router = useRouter();
+    const { user, isAuthenticated, logout } = useAuth();
+
+    const [mounted, setMounted] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const { logout, user } = useAuth();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const [stats, setStats] = useState({
+        totalContent: 0,
+        pendingJobs: 0,
+        completedJobs: 0,
+        totalReach: 0,
+    });
+    const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+    if (!mounted) return null;
 
     const getInitials = () => {
         if (user?.role === 'agency' && user.businessName) {

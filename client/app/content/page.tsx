@@ -24,7 +24,15 @@ export default function ContentLibraryPage() {
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [content, setContent] = useState<ContentAsset[]>([]);
+
+    if (!mounted) return null;
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState<string>("all");

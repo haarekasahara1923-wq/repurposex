@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +26,15 @@ export default function AnalyticsPage() {
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [timeRange, setTimeRange] = useState("7d");
+
+    if (!mounted) return null;
 
     if (!isAuthenticated) {
         router.push("/login");

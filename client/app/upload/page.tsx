@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -24,6 +24,12 @@ export default function UploadPage() {
     const { user, isAuthenticated } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -34,6 +40,8 @@ export default function UploadPage() {
         description: "",
         tags: "",
     });
+
+    if (!mounted) return null;
 
     // Redirect if not authenticated
     if (!isAuthenticated) {
@@ -203,8 +211,8 @@ export default function UploadPage() {
                     <button
                         onClick={() => setUploadMode("file")}
                         className={`px-6 py-3 rounded-lg font-semibold transition ${uploadMode === "file"
-                                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                                : "bg-white/10 text-gray-400 hover:bg-white/20"
+                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                            : "bg-white/10 text-gray-400 hover:bg-white/20"
                             }`}
                     >
                         <UploadIcon className="w-5 h-5 inline mr-2" />
@@ -213,8 +221,8 @@ export default function UploadPage() {
                     <button
                         onClick={() => setUploadMode("url")}
                         className={`px-6 py-3 rounded-lg font-semibold transition ${uploadMode === "url"
-                                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                                : "bg-white/10 text-gray-400 hover:bg-white/20"
+                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                            : "bg-white/10 text-gray-400 hover:bg-white/20"
                             }`}
                     >
                         <LinkIcon className="w-5 h-5 inline mr-2" />
