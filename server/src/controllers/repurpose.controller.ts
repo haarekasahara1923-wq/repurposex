@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth.middleware';
 import openaiService from '../services/openai.service';
 import geminiService from '../services/gemini.service';
+import groqService from '../services/groq.service';
 
 export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
     try {
@@ -180,9 +181,18 @@ async function processRepurposingJob(
         let transcript = content.analysis?.transcript || 'Sample content for demonstration';
 
         // Select AI service
-        const useGemini = !!process.env.GEMINI_API_KEY;
-        const aiService = useGemini ? geminiService : openaiService;
-        console.log(`Using AI Service: ${useGemini ? 'Gemini' : 'OpenAI'}`);
+        // Priority: Groq (Fast/Free) -> Gemini -> OpenAI
+        let aiService: any;
+        if (process.env.GROQ_API_KEY) {
+            aiService = groqService;
+            console.log('Using AI Service: Groq');
+        } else if (process.env.GEMINI_API_KEY) {
+            aiService = geminiService;
+            console.log('Using AI Service: Gemini');
+        } else {
+            aiService = openaiService;
+            console.log('Using AI Service: OpenAI');
+        }
 
         // Generate content based on job type
         let result;

@@ -7,14 +7,14 @@ async function listModels() {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
         // Note: The SDK might not have a direct listModels, but we can try to initialize 
         // and see if a simple prompt works with gemini-pro which is the most stable.
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent("test");
-        console.log("SUCCESS: gemini-pro is working.");
-
-        // Try gemini-1.5-flash specifically
-        const model2 = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result2 = await model2.generateContent("test");
         console.log("SUCCESS: gemini-1.5-flash is working.");
+
+        // Try gemini-1.5-pro specifically
+        const model2 = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        const result2 = await model2.generateContent("test");
+        console.log("SUCCESS: gemini-1.5-pro is working.");
     } catch (error: any) {
         console.error("DEBUG ERROR:", error.message);
     }

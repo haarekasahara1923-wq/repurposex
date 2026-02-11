@@ -5,10 +5,16 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Runtime fallback mechanism
 const generateWithFallback = async (prompt: string) => {
-    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+    // Priority: 1.5 Flash (Fast/Cheap) -> 1.5 Pro (Powerful) -> 2.0 Flash (Next Gen) -> 1.0 Pro (Legacy)
+    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-1.0-pro"];
     let lastError: any;
 
-    const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : "MISSING";
+    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
+        console.error("Gemini API key is missing or placeholder!");
+        throw new Error("Gemini API key is not configured. Please add GEMINI_API_KEY to your .env file.");
+    }
+
+    const maskedKey = `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}`;
     console.log(`Gemini Request (Key: ${maskedKey})`);
 
     for (const modelName of models) {
@@ -19,18 +25,25 @@ const generateWithFallback = async (prompt: string) => {
             const response = await result.response;
             const text = response.text();
 
-            if (text) return text;
+            if (text) {
+                console.log(`Success with model: ${modelName}`);
+                return text;
+            }
         } catch (error: any) {
             console.error(`Model ${modelName} error:`, error.message);
             lastError = error;
-            // If it's a quota or auth error, don't bother retrying other models
-            if (error.message?.includes('429') || error.message?.includes('403')) {
+
+            // If it's a quota (429) or auth (401/403) error, don't bother retrying other models
+            if (error.message?.includes('429') || error.message?.includes('403') || error.message?.includes('401')) {
+                console.log(`Breaking fallback loop due to terminal error on ${modelName}`);
                 break;
             }
-            continue; // Try next model on 404 or other errors
+            continue; // Try next model on 404, 500 or other errors
         }
     }
-    throw lastError || new Error("All Gemini models failed");
+
+    console.error("All Gemini models failed. Last error:", lastError?.message);
+    throw lastError || new Error("All Gemini models failed to generate content");
 };
 
 // Helper to clean and parse JSON from AI response
