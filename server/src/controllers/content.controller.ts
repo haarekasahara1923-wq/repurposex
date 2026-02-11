@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import openaiService from '../services/openai.service';
 import geminiService from '../services/gemini.service';
+import { emailService } from '../services/email.service';
 
 export const uploadContent = async (req: AuthRequest, res: Response) => {
     try {
@@ -229,6 +230,11 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
             success: true,
             contentId: content.id,
             analysis: contentAnalysis
+        });
+
+        // Send Analysis Success Email
+        emailService.sendJobCompletionEmail(req.user.email, req.user.fullName, 'Analysis').catch(err => {
+            console.error('Failed to send analysis success email:', err);
         });
     } catch (error) {
         console.error('Analyze content error:', error);

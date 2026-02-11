@@ -4,6 +4,7 @@ import Razorpay from 'razorpay';
 import Stripe from 'stripe';
 import prisma from '../config/database';
 import axios from 'axios';
+import { emailService } from '../services/email.service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2023-10-16' as any,
@@ -129,6 +130,11 @@ export const verifyPayment = async (req: AuthRequest, res: Response) => {
         });
 
         res.json({ success: true, message: 'Payment verified and subscription activated' });
+
+        // Send Payment Success Email
+        emailService.sendSubscriptionAlert(req.user.email, req.user.fullName, 'payment_success').catch(err => {
+            console.error('Failed to send payment success email:', err);
+        });
     } catch (error) {
         console.error('Payment verification failed:', error);
         res.status(500).json({ success: false, message: 'Verification failed' });

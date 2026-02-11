@@ -36,6 +36,7 @@ model User {
   subscriptions   Subscription[]
   brandProfiles   BrandProfile[]
   contentAssets   ContentAsset[]
+  repurposingJobs RepurposingJob[]
   generatedContent GeneratedContent[]
   payments        Payment[]
   sessions        Session[]
@@ -306,6 +307,7 @@ model RepurposingJob {
   updatedAt              DateTime  @updatedAt
 
   contentAsset     ContentAsset       @relation(fields: [contentAssetId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   generatedContent GeneratedContent[]
 
   @@index([contentAssetId])

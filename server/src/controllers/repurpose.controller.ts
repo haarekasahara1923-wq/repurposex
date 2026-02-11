@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import openaiService from '../services/openai.service';
 import geminiService from '../services/gemini.service';
 import groqService from '../services/groq.service';
+import { emailService } from '../services/email.service';
 
 export const createBulkRepurposingJobs = async (req: AuthRequest, res: Response) => {
     try {
@@ -388,6 +389,19 @@ async function processRepurposingJob(
                 completedAt: new Date()
             }
         });
+
+        // Send Job Completion Email (Fetch user separately to be safe with types)
+        const job = await prisma.repurposingJob.findUnique({ where: { id: jobId } });
+        if (job) {
+            const user = await prisma.user.findUnique({ where: { id: job.userId } });
+            if (user) {
+                emailService.sendJobCompletionEmail(
+                    user.email,
+                    user.fullName,
+                    jobType.charAt(0).toUpperCase() + jobType.slice(1)
+                ).catch(err => console.error('Failed to send job completion email:', err));
+            }
+        }
 
     } catch (error) {
         console.error('Job processing failed:', error);

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { emailService } from '../services/email.service';
 
 // ========================================
 // VALIDATION SCHEMAS
@@ -97,6 +98,11 @@ export const register = async (req: Request, res: Response) => {
                 userAgent: req.headers['user-agent'],
                 expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
             }
+        });
+
+        // Send Welcome Email (Background)
+        emailService.sendWelcomeEmail(user.email, user.fullName).catch(err => {
+            console.error('Failed to send welcome email:', err);
         });
 
         res.status(201).json({
