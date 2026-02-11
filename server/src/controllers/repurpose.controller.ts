@@ -119,6 +119,11 @@ export const getJobStatus = async (req: AuthRequest, res: Response) => {
                     select: {
                         id: true,
                         title: true,
+                        contentText: true,
+                        caption: true,
+                        hashtags: true,
+                        cta: true,
+                        metadata: true,
                         contentType: true,
                         targetPlatform: true,
                         qualityScore: true,
