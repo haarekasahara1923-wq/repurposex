@@ -14,6 +14,7 @@ import contentRoutes from './routes/content.routes';
 import repurposeRoutes from './routes/repurpose.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import onboardingRoutes from './routes/onboarding.routes';
+import paymentRoutes from './routes/payment.routes';
 
 const app: Application = express();
 const PORT = process.env.API_PORT || 5000;
@@ -71,6 +72,7 @@ app.use('/api/v1/content', contentRoutes);
 app.use('/api/v1/repurpose', repurposeRoutes);
 app.use('/api/v1/subscriptions', subscriptionRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

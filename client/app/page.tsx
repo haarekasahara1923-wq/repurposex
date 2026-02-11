@@ -1,7 +1,12 @@
+"use client";
+
+import { useState } from 'react';
 import Link from "next/link";
 import { ArrowRight, Sparkles, Video, FileText, Zap, Users, BarChart, CheckCircle, Star } from "lucide-react";
 
-export default function LandingPage() {
+export default function Home() {
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const [activeTab, setActiveTab] = useState('features');
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
@@ -168,23 +173,30 @@ export default function LandingPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-xl text-gray-300">
-              Choose the plan that fits your needs
-            </p>
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <span className={`text-sm font-medium ${currency === 'INR' ? 'text-white' : 'text-gray-500'}`}>INR (India)</span>
+              <button
+                onClick={() => setCurrency(currency === 'INR' ? 'USD' : 'INR')}
+                className="w-14 h-7 bg-slate-800 rounded-full relative p-1 transition"
+              >
+                <div className={`w-5 h-5 bg-purple-500 rounded-full transition-all ${currency === 'USD' ? 'translate-x-7' : 'translate-x-0'}`} />
+              </button>
+              <span className={`text-sm font-medium ${currency === 'USD' ? 'text-white' : 'text-gray-500'}`}>USD (Global)</span>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {/* Creator Plan */}
-            <div className="p-8 bg-white/5 backdrop-blur border border-white/10 rounded-2xl hover:border-purple-500/50 transition">
+            <div className="p-8 bg-white/5 backdrop-blur border border-white/10 rounded-2xl hover:border-purple-500/50 transition flex flex-col">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Creator</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">₹4,999</span>
+                  <span className="text-4xl font-bold text-white">{currency === 'INR' ? '₹999' : '$29'}</span>
                   <span className="text-gray-400">/month</span>
                 </div>
                 <p className="text-gray-400 mt-2">Perfect for individual creators</p>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-8 flex-1">
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
                   10 video uploads/month
@@ -197,18 +209,14 @@ export default function LandingPage() {
                   <CheckCircle className="w-5 h-5 text-green-400" />
                   1,000 AI credits
                 </li>
-                <li className="flex items-center gap-3 text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  2 Brand Voices
-                </li>
               </ul>
               <Link href="/signup" className="block w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-center font-semibold transition">
-                Start 7-Day Free Trial
+                Start Free Trial
               </Link>
             </div>
 
             {/* Pro Plan - Featured */}
-            <div className="p-8 bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur border-2 border-purple-500 rounded-2xl relative transform scale-105">
+            <div className="p-8 bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur border-2 border-purple-500 rounded-2xl relative transform lg:scale-105 flex flex-col">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                 <span className="px-4 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold rounded-full">
                   MOST POPULAR
@@ -217,12 +225,12 @@ export default function LandingPage() {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">₹14,999</span>
+                  <span className="text-4xl font-bold text-white">{currency === 'INR' ? '₹2,999' : '$99'}</span>
                   <span className="text-gray-400">/month</span>
                 </div>
                 <p className="text-gray-400 mt-2">For serious creators & small teams</p>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-8 flex-1">
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
                   50 video uploads/month
@@ -237,36 +245,28 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  10 Brand Voices
-                </li>
-                <li className="flex items-center gap-3 text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  Priority Support
+                  Priority Processing
                 </li>
               </ul>
               <Link href="/signup" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 text-white rounded-xl text-center font-semibold transition">
-                Start 7-Day Free Trial
+                Start Free Trial
               </Link>
             </div>
 
             {/* Agency Plan */}
-            <div className="p-8 bg-white/5 backdrop-blur border border-white/10 rounded-2xl hover:border-purple-500/50 transition">
+            <div className="p-8 bg-white/5 backdrop-blur border border-white/10 rounded-2xl hover:border-purple-500/50 transition flex flex-col">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Agency</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">₹49,999</span>
+                  <span className="text-4xl font-bold text-white">{currency === 'INR' ? '₹7,999' : '$299'}</span>
                   <span className="text-gray-400">/month</span>
                 </div>
-                <p className="text-gray-400 mt-2">Scale your content agency</p>
+                <p className="text-gray-400 mt-2">Scale your agency</p>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-8 flex-1">
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
                   Unlimited uploads
-                </li>
-                <li className="flex items-center gap-3 text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  25 Client Sub-accounts
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
@@ -274,16 +274,38 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  Unlimited Team Members
-                </li>
-                <li className="flex items-center gap-3 text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  Custom AI Training
+                  10,000 AI credits
                 </li>
               </ul>
               <Link href="/signup" className="block w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-center font-semibold transition">
                 Contact Sales
               </Link>
+            </div>
+          </div>
+
+          <div className="mt-12 grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* DFY Add-on */}
+            <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between">
+              <div>
+                <h4 className="text-white font-bold text-lg">DFY Add-on</h4>
+                <p className="text-gray-400 text-sm">Done-for-you management</p>
+              </div>
+              <div className="text-right">
+                <p className="text-white font-bold">{currency === 'INR' ? '₹15,000' : '$199'}/mo</p>
+                <button className="text-purple-400 text-sm font-medium hover:text-purple-300">Add to Plan</button>
+              </div>
+            </div>
+
+            {/* White Label */}
+            <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between">
+              <div>
+                <h4 className="text-white font-bold text-lg">White Label</h4>
+                <p className="text-gray-400 text-sm">Custom branding & domain</p>
+              </div>
+              <div className="text-right">
+                <p className="text-white font-bold">{currency === 'INR' ? '₹40,000+' : '$499+'}/mo</p>
+                <button className="text-purple-400 text-sm font-medium hover:text-purple-300">Book Demo</button>
+              </div>
             </div>
           </div>
         </div>

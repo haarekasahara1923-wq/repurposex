@@ -132,7 +132,7 @@ model SubscriptionPlan {
 
 model Subscription {
   id                     String    @id @default(uuid())
-  userId                 String
+  userId                 String    @unique
   organizationId         String?
   planId                 String
   status                 String // trial, active, past_due, canceled, expired
@@ -152,7 +152,6 @@ model Subscription {
   plan         SubscriptionPlan  @relation(fields: [planId], references: [id])
   payments     Payment[]
 
-  @@index([userId])
   @@index([organizationId])
   @@index([status])
 }

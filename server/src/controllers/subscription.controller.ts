@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 // For MVP, we'll use hardcoded plans
+// Finalized Pricing Structure
 const PLANS = [
     {
         id: 'creator',
@@ -62,6 +63,42 @@ const PLANS = [
         limits: {
             maxUploadsPerMonth: 999999,
             maxAiCredits: 10000
+        }
+    },
+    {
+        id: 'dfy_addon',
+        name: 'DFY Add-on',
+        slug: 'dfy-addon',
+        description: 'Done-for-you content management',
+        billingPeriod: 'monthly',
+        priceInr: 15000,
+        priceUsd: 199, // Estimated USD if not specified
+        features: {
+            dedicatedManager: true,
+            customEditing: true,
+            unlimitedRepurposing: true
+        },
+        limits: {
+            maxUploadsPerMonth: 999999,
+            maxAiCredits: 999999
+        }
+    },
+    {
+        id: 'white_label',
+        name: 'White Label',
+        slug: 'white-label',
+        description: 'Full white-label portal for agencies',
+        billingPeriod: 'monthly',
+        priceInr: 40000, // Estimated INR
+        priceUsd: 499,
+        features: {
+            customDomain: true,
+            brandedEmails: true,
+            clientLoginPortal: true
+        },
+        limits: {
+            maxUploadsPerMonth: 999999,
+            maxAiCredits: 999999
         }
     }
 ];

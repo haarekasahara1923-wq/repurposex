@@ -6,9 +6,11 @@ import {
     LogOut, Menu, X, Plus, TrendingUp, Clock, CheckCircle, Building2
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const { logout } = useAuth();
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -86,7 +88,10 @@ export default function DashboardPage() {
                                 <span>Settings</span>
                             </Link>
 
-                            <button className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-red-400 rounded-lg transition w-full">
+                            <button
+                                onClick={logout}
+                                className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-red-400 rounded-lg transition w-full"
+                            >
                                 <LogOut className="w-5 h-5" />
                                 <span>Logout</span>
                             </button>

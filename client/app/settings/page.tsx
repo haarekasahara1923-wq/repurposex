@@ -16,6 +16,7 @@ import {
     CheckCircle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 export default function SettingsPage() {
@@ -23,6 +24,7 @@ export default function SettingsPage() {
     const { user, logout, isAuthenticated } = useAuth();
 
     const [activeTab, setActiveTab] = useState("profile");
+    const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
     const [profile, setProfile] = useState({
         firstName: user?.firstName || "",
         lastName: user?.lastName || "",
@@ -61,6 +63,38 @@ export default function SettingsPage() {
 
     const handleSaveBrandVoice = () => {
         toast.success("Brand voice settings updated!");
+    };
+
+    const handlePayment = async (gateway: string) => {
+        toast.loading(`Initiating ${gateway} payment...`, { id: 'pay' });
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const planSlug = 'pro'; // Defaulting to pro for this button
+
+            if (gateway === 'razorpay') {
+                // Razorpay Flow
+                const { data } = await axios.post(`${apiUrl}/api/v1/payments/razorpay/create`, {
+                    amount: currency === 'INR' ? 2999 : 99,
+                    planId: planSlug
+                }, { headers: { Authorization: `Bearer ${token}` } });
+
+                toast.success('Razorpay Order Created!', { id: 'pay' });
+                // In production: open Razorpay checkout Modal
+            } else if (gateway === 'stripe') {
+                const { data } = await axios.post(`${apiUrl}/api/v1/payments/stripe/create-session`, {
+                    planId: planSlug,
+                    successUrl: window.location.origin + '/dashboard?payment=success',
+                    cancelUrl: window.location.origin + '/settings?payment=cancel'
+                }, { headers: { Authorization: `Bearer ${token}` } });
+
+                window.location.href = data.url;
+            } else {
+                toast.success(`${gateway} flow initiated (Sandbox)`, { id: 'pay' });
+            }
+        } catch (error) {
+            toast.error('Payment failed to start', { id: 'pay' });
+        }
     };
 
     const handleLogout = () => {
@@ -104,8 +138,8 @@ export default function SettingsPage() {
                             <button
                                 onClick={() => setActiveTab("profile")}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "profile"
-                                        ? "bg-purple-600 text-white"
-                                        : "text-gray-300 hover:bg-white/10"
+                                    ? "bg-purple-600 text-white"
+                                    : "text-gray-300 hover:bg-white/10"
                                     }`}
                             >
                                 <User className="w-5 h-5" />
@@ -115,8 +149,8 @@ export default function SettingsPage() {
                             <button
                                 onClick={() => setActiveTab("subscription")}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "subscription"
-                                        ? "bg-purple-600 text-white"
-                                        : "text-gray-300 hover:bg-white/10"
+                                    ? "bg-purple-600 text-white"
+                                    : "text-gray-300 hover:bg-white/10"
                                     }`}
                             >
                                 <Crown className="w-5 h-5" />
@@ -126,8 +160,8 @@ export default function SettingsPage() {
                             <button
                                 onClick={() => setActiveTab("brandvoice")}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "brandvoice"
-                                        ? "bg-purple-600 text-white"
-                                        : "text-gray-300 hover:bg-white/10"
+                                    ? "bg-purple-600 text-white"
+                                    : "text-gray-300 hover:bg-white/10"
                                     }`}
                             >
                                 <Palette className="w-5 h-5" />
@@ -137,8 +171,8 @@ export default function SettingsPage() {
                             <button
                                 onClick={() => setActiveTab("notifications")}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "notifications"
-                                        ? "bg-purple-600 text-white"
-                                        : "text-gray-300 hover:bg-white/10"
+                                    ? "bg-purple-600 text-white"
+                                    : "text-gray-300 hover:bg-white/10"
                                     }`}
                             >
                                 <Bell className="w-5 h-5" />
@@ -148,8 +182,8 @@ export default function SettingsPage() {
                             <button
                                 onClick={() => setActiveTab("security")}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === "security"
-                                        ? "bg-purple-600 text-white"
-                                        : "text-gray-300 hover:bg-white/10"
+                                    ? "bg-purple-600 text-white"
+                                    : "text-gray-300 hover:bg-white/10"
                                     }`}
                             >
                                 <Shield className="w-5 h-5" />
@@ -263,19 +297,37 @@ export default function SettingsPage() {
                         {/* Subscription Tab */}
                         {activeTab === "subscription" && (
                             <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-8">
-                                <h2 className="text-2xl font-bold text-white mb-6">Subscription</h2>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-white">Subscription</h2>
+                                    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
+                                        <button
+                                            onClick={() => setCurrency('INR')}
+                                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${currency === 'INR' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                        >
+                                            INR
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrency('USD')}
+                                            className={`px-3 py-1 rounded-md text-xs font-bold transition ${currency === 'USD' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                        >
+                                            USD
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/50 rounded-xl p-6 mb-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Crown className="w-6 h-6 text-yellow-400" />
-                                                <h3 className="text-xl font-bold text-white">Creator Plan</h3>
+                                                <h3 className="text-xl font-bold text-white">Pro Plan</h3>
                                             </div>
-                                            <p className="text-gray-300">Free Trial - 14 days remaining</p>
+                                            <p className="text-gray-300">Active Subscription</p>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-3xl font-bold text-white">$0</div>
+                                            <div className="text-3xl font-bold text-white">
+                                                {currency === 'INR' ? '₹2,999' : '$99'}
+                                            </div>
                                             <div className="text-sm text-gray-400">per month</div>
                                         </div>
                                     </div>
@@ -289,19 +341,37 @@ export default function SettingsPage() {
                                             <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                                             <span>5,000 AI credits</span>
                                         </div>
-                                        <div className="flex items-start gap-2 text-gray-200">
-                                            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                                            <span>Video up to 2GB</span>
-                                        </div>
-                                        <div className="flex items-start gap-2 text-gray-200">
-                                            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                                            <span>All repurposing formats</span>
-                                        </div>
+                                        {/* ... higher limits ... */}
                                     </div>
 
-                                    <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition">
-                                        Upgrade to Pro
-                                    </button>
+                                    <div className="flex flex-col gap-3">
+                                        {currency === 'INR' ? (
+                                            <button
+                                                onClick={() => handlePayment('razorpay')}
+                                                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                                            >
+                                                Pay with Razorpay
+                                            </button>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    onClick={() => handlePayment('stripe')}
+                                                    className="py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
+                                                >
+                                                    Stripe
+                                                </button>
+                                                <button
+                                                    onClick={() => handlePayment('paypal')}
+                                                    className="py-3 bg-yellow-500 text-slate-900 rounded-xl font-bold hover:bg-yellow-600 transition"
+                                                >
+                                                    PayPal
+                                                </button>
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-center text-gray-400 mt-2">
+                                            Secure, encrypted payment processing.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="bg-white/5 rounded-xl p-6">
