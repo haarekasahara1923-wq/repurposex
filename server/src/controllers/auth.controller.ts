@@ -168,7 +168,9 @@ export const register = async (req: Request, res: Response) => {
             success: false,
             error: {
                 code: 'REGISTRATION_FAILED',
-                message: 'Registration failed. Please try again.'
+                message: error.message || 'Registration failed',
+                details: error,
+                stack: error.stack
             }
         });
     }

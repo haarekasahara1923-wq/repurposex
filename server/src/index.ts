@@ -64,13 +64,17 @@ import prisma from './config/database';
 // Health check
 app.get('/health', async (req: Request, res: Response) => {
     try {
-        // Check DB connection
+        // Check DB connection and table existence
         await prisma.$queryRaw`SELECT 1`;
+        const userCount = await prisma.user.count(); // This will fail if tables don't exist
+
         res.json({
             status: 'OK',
             timestamp: new Date().toISOString(),
             environment: process.env.NODE_ENV || 'development',
             database: 'connected',
+            schema: 'verified',
+            userCount,
             env_check: {
                 JWT_SECRET: !!process.env.JWT_SECRET,
                 DATABASE_URL: !!process.env.DATABASE_URL,
