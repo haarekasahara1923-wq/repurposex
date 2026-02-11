@@ -32,7 +32,7 @@ app.use(helmet());
 
 // CORS
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: '*', // Allow all origins for debugging
     credentials: true
 }));
 
@@ -49,9 +49,11 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
+    // Trust proxy for Vercel
+    validate: { trustProxy: false },
     message: 'Too many requests from this IP, please try again later.'
 });
-app.use('/api/', limiter);
+app.use(limiter); // Apply globally instead of limiting to /api/ path which might mismatch on Vercel rewrites
 
 // ========================================
 // ROUTES
