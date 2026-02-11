@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
     Sparkles, Upload, Video, FileText, BarChart, Settings,
-    LogOut, Menu, X, Plus, TrendingUp, Clock, CheckCircle
+    LogOut, Menu, X, Plus, TrendingUp, Clock, CheckCircle, Building2
 } from "lucide-react";
 import { useState } from "react";
 
@@ -73,6 +73,11 @@ export default function DashboardPage() {
                         <Link href="/analytics" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
                             <TrendingUp className="w-5 h-5" />
                             <span>Analytics</span>
+                        </Link>
+
+                        <Link href="/agency" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition border-t border-white/5 mt-2 pt-2">
+                            <Building2 className="w-5 h-5 text-purple-400" />
+                            <span>Agency Portal</span>
                         </Link>
 
                         <div className="pt-4 mt-4 border-t border-white/10">

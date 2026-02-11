@@ -15,25 +15,27 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        if (!req.file) {
+        const { title, description, contentType, tags, url } = req.body;
+
+        if (!req.file && !url) {
             return res.status(400).json({
                 success: false,
-                error: { code: 'FILE_REQUIRED', message: 'No file uploaded' }
+                error: { code: 'INPUT_REQUIRED', message: 'No file or URL provided' }
             });
         }
-
-        const { title, description, contentType, tags } = req.body;
 
         // Create content asset record
         const content = await prisma.contentAsset.create({
             data: {
                 userId: req.user.id,
-                title: title || req.file.originalname,
+                title: title || (req.file ? req.file.originalname : 'URL Import'),
                 description,
                 contentType: contentType || 'unknown',
-                fileUrl: req.file.path,
-                fileSize: BigInt(req.file.size),
-                mimeType: req.file.mimetype,
+                fileUrl: req.file ? req.file.path : url,
+                fileSize: req.file ? BigInt(req.file.size) : 0n,
+                mimeType: req.file ? req.file.mimetype : 'text/url',
+                sourceUrl: url || null,
+                sourcePlatform: url ? (url.includes('youtube') ? 'youtube' : 'other') : 'upload',
                 uploadStatus: 'completed',
                 tags: tags ? tags.split(',') : [],
                 processingCompletedAt: new Date()

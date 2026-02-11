@@ -6,6 +6,7 @@ export interface AuthRequest extends Request {
     user?: {
         id: string;
         email: string;
+        fullName: string;
         role?: string;
     };
 }
@@ -53,6 +54,7 @@ export const authenticate = async (
             select: {
                 id: true,
                 email: true,
+                fullName: true,
                 status: true
             }
         });
@@ -67,19 +69,20 @@ export const authenticate = async (
             });
         }
 
-        if (user.status !== 'active') {
+        if (user.status !== 'active' && user.status !== 'pending') {
             return res.status(401).json({
                 success: false,
                 error: {
-                    code: 'ACCOUNT_INACTIVE',
-                    message: 'Your account is not active'
+                    code: 'ACCOUNT_DISABLED',
+                    message: 'Your account is disabled or suspended'
                 }
             });
         }
 
         req.user = {
             id: user.id,
-            email: user.email
+            email: user.email,
+            fullName: user.fullName
         };
 
         next();

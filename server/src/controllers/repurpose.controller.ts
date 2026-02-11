@@ -5,6 +5,98 @@ import openaiService from '../services/openai.service';
 import geminiService from '../services/gemini.service';
 import groqService from '../services/groq.service';
 
+export const createBulkRepurposingJobs = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: { code: 'UNAUTHORIZED', message: 'Not authenticated' }
+            });
+        }
+
+        const { contentId, jobs } = req.body; // jobs: [{ outputType, tone, config }]
+
+        if (!contentId || !jobs || !Array.isArray(jobs)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Content ID and jobs array are required',
+                error: { code: 'INVALID_INPUT' }
+            });
+        }
+
+        // Verify content exists and belongs to user
+        const content = await prisma.contentAsset.findFirst({
+            where: {
+                id: contentId,
+                userId: req.user.id
+            },
+            include: {
+                analysis: true
+            }
+        });
+
+        if (!content) {
+            return res.status(404).json({
+                success: false,
+                message: 'Content not found',
+                error: { code: 'NOT_FOUND' }
+            });
+        }
+
+        const createdJobs = [];
+
+        for (const jobConfig of jobs) {
+            const { outputType, tone, config = {} } = jobConfig;
+
+            // Simple mapping as in single job creation
+            let jobType = outputType;
+            if (outputType.includes('blog')) jobType = 'blog';
+            if (outputType.includes('linkedin')) jobType = 'linkedin';
+            if (outputType.includes('twitter')) jobType = 'twitter_thread';
+
+            const job = await prisma.repurposingJob.create({
+                data: {
+                    contentAssetId: contentId,
+                    userId: req.user.id,
+                    jobType: jobType,
+                    outputFormat: outputType,
+                    status: 'queued',
+                    progress: 0,
+                    config: { ...config, tone } as any,
+                }
+            });
+
+            // Start processing asynchronously
+            processRepurposingJob(job.id, content, jobType, { ...config, tone }).catch(err => {
+                console.error(`Bulk Job ${job.id} processing error:`, err);
+            });
+
+            createdJobs.push({
+                id: job.id,
+                outputType: job.outputFormat,
+                status: job.status
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: `${createdJobs.length} jobs created successfully`,
+            jobs: createdJobs
+        });
+    } catch (error: any) {
+        console.error('Bulk repurposing error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create bulk jobs',
+            error: { code: 'BULK_FAILED', details: error.message }
+        });
+    }
+};
+
+// Internal processing function (already exists below, but I'll make sure it's accessible or just keep the existing structure)
+// For now, I'll just assume processRepurposingJob is available in the scope or I'll move it.
+
+
 export const createRepurposingJob = async (req: AuthRequest, res: Response) => {
     try {
         console.log('Repurposing job request body:', req.body);

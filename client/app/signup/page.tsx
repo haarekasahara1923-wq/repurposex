@@ -30,7 +30,7 @@ export default function SignupPage() {
 
         try {
             await signup(formData.email, formData.password, formData.firstName, formData.lastName);
-            router.push('/dashboard');
+            router.push('/onboarding');
         } catch (error) {
             console.error('Signup error:', error);
         } finally {

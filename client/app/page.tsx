@@ -179,7 +179,7 @@ export default function LandingPage() {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Creator</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">₹999</span>
+                  <span className="text-4xl font-bold text-white">₹4,999</span>
                   <span className="text-gray-400">/month</span>
                 </div>
                 <p className="text-gray-400 mt-2">Perfect for individual creators</p>
@@ -187,23 +187,23 @@ export default function LandingPage() {
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  10 content uploads/month
+                  10 video uploads/month
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  5 platforms
+                  AI Clip Extraction
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  500 AI credits
+                  1,000 AI credits
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  2 brand voices
+                  2 Brand Voices
                 </li>
               </ul>
               <Link href="/signup" className="block w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-center font-semibold transition">
-                Start Free Trial
+                Start 7-Day Free Trial
               </Link>
             </div>
 
@@ -217,35 +217,35 @@ export default function LandingPage() {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">₹2,999</span>
+                  <span className="text-4xl font-bold text-white">₹14,999</span>
                   <span className="text-gray-400">/month</span>
                 </div>
-                <p className="text-gray-400 mt-2">For serious creators & teams</p>
+                <p className="text-gray-400 mt-2">For serious creators & small teams</p>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  50 content uploads/month
+                  50 video uploads/month
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  All platforms
+                  ROI Analytics Dashboard
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  2,000 AI credits
+                  5,000 AI credits
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  5 brand voices
+                  10 Brand Voices
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  Priority processing
+                  Priority Support
                 </li>
               </ul>
               <Link href="/signup" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/50 text-white rounded-xl text-center font-semibold transition">
-                Start Free Trial
+                Start 7-Day Free Trial
               </Link>
             </div>
 
@@ -254,10 +254,10 @@ export default function LandingPage() {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-white mb-2">Agency</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">₹7,999</span>
+                  <span className="text-4xl font-bold text-white">₹49,999</span>
                   <span className="text-gray-400">/month</span>
                 </div>
-                <p className="text-gray-400 mt-2">Scale your agency</p>
+                <p className="text-gray-400 mt-2">Scale your content agency</p>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-3 text-gray-300">
@@ -266,23 +266,23 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  10 client accounts
+                  25 Client Sub-accounts
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  10,000 AI credits
+                  White-label Client Portal
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  White-label branding
+                  Unlimited Team Members
                 </li>
                 <li className="flex items-center gap-3 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  API access
+                  Custom AI Training
                 </li>
               </ul>
               <Link href="/signup" className="block w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-center font-semibold transition">
-                Book Demo
+                Contact Sales
               </Link>
             </div>
           </div>

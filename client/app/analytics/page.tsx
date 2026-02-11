@@ -130,8 +130,8 @@ export default function AnalyticsPage() {
                                 key={range}
                                 onClick={() => setTimeRange(range)}
                                 className={`px-4 py-2 rounded-lg font-medium transition ${timeRange === range
-                                        ? "bg-purple-600 text-white"
-                                        : "bg-white/10 text-gray-400 hover:bg-white/20"
+                                    ? "bg-purple-600 text-white"
+                                    : "bg-white/10 text-gray-400 hover:bg-white/20"
                                     }`}
                             >
                                 {range === "7d" && "Last 7 Days"}
@@ -257,6 +257,72 @@ export default function AnalyticsPage() {
                                 </div>
                             );
                         })}
+                    </div>
+                </div>
+
+                {/* ROI Analysis (Pro Plan+) */}
+                <div className="grid lg:grid-cols-3 gap-6 mb-8">
+                    <div className="lg:col-span-2 bg-gradient-to-br from-blue-600/10 to-purple-600/10 backdrop-blur border border-blue-500/20 rounded-2xl p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <TrendingUp className="w-8 h-8 text-blue-400" />
+                            <h2 className="text-2xl font-bold text-white">Content ROI Analysis</h2>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                                <div>
+                                    <p className="text-gray-400 text-sm">Source Content</p>
+                                    <p className="text-white font-semibold">Podcast Episode #45</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-gray-400 text-sm">Investment</p>
+                                    <p className="text-white font-semibold">5 Hours (₹5,000)</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-white">25</p>
+                                    <p className="text-xs text-gray-400">Pieces Created</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-white">75K</p>
+                                    <p className="text-xs text-gray-400">Total Reach</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-white">5.2K</p>
+                                    <p className="text-xs text-gray-400">Total Engagement</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-green-400">₹37,500</p>
+                                    <p className="text-xs text-gray-400">Est. Value</p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xl font-bold">7.5x</div>
+                                    <div>
+                                        <p className="text-green-400 font-bold">ROI Multiplier 🚀</p>
+                                        <p className="text-green-400/70 text-sm">₹0.96 per engagement</p>
+                                    </div>
+                                </div>
+                                <div className="hidden md:block text-right text-gray-400 text-sm max-w-xs">
+                                    Your podcast content has 7.5x better ROI than individual social posts!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-8 flex flex-col justify-center text-center">
+                        <Sparkles className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-white mb-2">AI Insights</h3>
+                        <p className="text-gray-400 text-sm mb-6">
+                            "Video content is generating 45% more engagement on Tuesdays. Consider shifting your YouTube short schedule."
+                        </p>
+                        <button className="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition font-medium">
+                            View All Insights
+                        </button>
                     </div>
                 </div>
 

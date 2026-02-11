@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
-import { createRepurposingJob, getJobStatus } from '../controllers/repurpose.controller';
+import { createRepurposingJob, getJobStatus, createBulkRepurposingJobs } from '../controllers/repurpose.controller';
 
 const router = Router();
 
@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/', createRepurposingJob);
+router.post('/bulk', createBulkRepurposingJobs);
 router.get('/jobs/:id', getJobStatus);
 
 export default router;

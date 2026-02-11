@@ -93,6 +93,8 @@ export interface AnalysisResult {
         platform: string;
         score: number;
     }[];
+    hooks?: string[];
+    keyInsights?: string[];
 }
 
 export interface RepurposeJob {
@@ -189,6 +191,14 @@ export const repurposeAPI = {
 
     getJob: async (id: string): Promise<RepurposeJob> => {
         const response = await api.get(`/api/v1/repurpose/jobs/${id}`);
+        return response.data;
+    },
+
+    createBulk: async (data: {
+        contentId: string;
+        jobs: { outputType: string; tone?: string; config?: any }[];
+    }): Promise<{ success: boolean; jobs: { id: string; outputType: string }[] }> => {
+        const response = await api.post('/api/v1/repurpose/bulk', data);
         return response.data;
     },
 };

@@ -20,7 +20,7 @@ import {
     Calendar,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { contentAPI, ContentAsset, AnalysisResult } from "@/lib/api";
+import { contentAPI, repurposeAPI, ContentAsset, AnalysisResult } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function ContentDetailsPage() {
@@ -253,10 +253,10 @@ export default function ContentDetailsPage() {
                                     <div className="w-full bg-white/10 rounded-full h-3">
                                         <div
                                             className={`h-full rounded-full ${analysis.sentiment.score >= 70
-                                                    ? "bg-green-500"
-                                                    : analysis.sentiment.score >= 40
-                                                        ? "bg-yellow-500"
-                                                        : "bg-red-500"
+                                                ? "bg-green-500"
+                                                : analysis.sentiment.score >= 40
+                                                    ? "bg-yellow-500"
+                                                    : "bg-red-500"
                                                 }`}
                                             style={{ width: `${analysis.sentiment.score}%` }}
                                         />
@@ -311,14 +311,44 @@ export default function ContentDetailsPage() {
                                 </div>
                             </div>
 
-                            {/* Success Message */}
-                            <div className="lg:col-span-2 bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-center gap-3">
-                                <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
-                                <div>
-                                    <p className="text-green-300 font-semibold">Analysis Complete!</p>
-                                    <p className="text-green-400/80 text-sm">
-                                        Your content has been analyzed. Ready to repurpose into multiple formats.
-                                    </p>
+                            {/* Smart Bulk Repurpose Section */}
+                            <div className="lg:col-span-2 bg-gradient-to-br from-purple-600/10 to-pink-600/10 border border-purple-500/20 rounded-2xl p-8 mb-8">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Sparkles className="w-5 h-5 text-purple-400" />
+                                            <h3 className="text-2xl font-bold text-white">Smart Bulk Repurpose</h3>
+                                        </div>
+                                        <p className="text-gray-300">
+                                            Our AI recommendation: Create 5 high-priority pieces of content across LinkedIn, Twitter, and Blog instantly.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                setAnalyzing(true);
+                                                toast.loading("Starting bulk repurposing...", { id: "bulk" });
+                                                const jobs = [
+                                                    { outputType: "linkedin_post", tone: "professional" },
+                                                    { outputType: "twitter_thread", tone: "viral" },
+                                                    { outputType: "blog_post", tone: "educational" },
+                                                    { outputType: "instagram_caption", tone: "casual" },
+                                                    { outputType: "newsletter", tone: "professional" }
+                                                ];
+                                                const result = await repurposeAPI.createBulk({ contentId: content.id, jobs });
+                                                toast.success(`${result.jobs.length} jobs started!`, { id: "bulk" });
+                                                router.push("/repurpose");
+                                            } catch (error) {
+                                                toast.error("Failed to start bulk jobs", { id: "bulk" });
+                                            } finally {
+                                                setAnalyzing(false);
+                                            }
+                                        }}
+                                        disabled={analyzing}
+                                        className="px-8 py-4 bg-white text-purple-900 rounded-xl font-bold hover:bg-purple-50 transition transform hover:scale-105 shadow-xl disabled:opacity-50"
+                                    >
+                                        Create All High Priority Content
+                                    </button>
                                 </div>
                             </div>
                         </>
