@@ -127,7 +127,6 @@ export default function SettingsPage() {
 
     const handleLogout = () => {
         logout();
-        router.push("/");
     };
 
     return (

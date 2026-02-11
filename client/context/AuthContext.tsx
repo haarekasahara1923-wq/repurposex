@@ -78,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('user');
         setUser(null);
         toast.success('Logged out successfully');
+        // Redirect to home page immediately
+        window.location.href = '/';
     };
 
     return (
