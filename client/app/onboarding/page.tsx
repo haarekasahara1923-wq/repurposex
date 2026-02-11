@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Sparkles, Business, Rocket, Target, Users, Layout,
+    Sparkles, Briefcase, Rocket, Target, Users, Layout,
     MessageSquare, Check, ChevronRight, ChevronLeft, Loader2
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
