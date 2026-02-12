@@ -719,17 +719,19 @@ export default function RepurposeWizard() {
 
                                                     if (ytId) {
                                                         return (
-                                                            <div className="w-full h-full">
-                                                                <iframe
-                                                                    width="100%"
-                                                                    height="100%"
-                                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&autoplay=0&rel=0`}
-                                                                    title="YouTube video player"
-                                                                    frameBorder="0"
-                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                    allowFullScreen
-                                                                    className="w-full h-full object-cover pointer-events-auto z-20 relative"
-                                                                />
+                                                            <div className="w-full h-full overflow-hidden relative pointer-events-none">
+                                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320%] h-full pointer-events-auto">
+                                                                    <iframe
+                                                                        width="100%"
+                                                                        height="100%"
+                                                                        src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&autoplay=0&rel=0&controls=0&modestbranding=1&loop=1`}
+                                                                        title="YouTube video player"
+                                                                        frameBorder="0"
+                                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                        allowFullScreen
+                                                                        className="w-full h-full"
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         );
                                                     }
