@@ -401,35 +401,54 @@ export default function RepurposeWizard() {
                             <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex items-center justify-center min-h-[300px]">
                                 {contentType === "video" ? (
                                     <div className="text-center w-full h-full flex items-center justify-center bg-black rounded-lg overflow-hidden relative">
-                                        {videoUrl ? (
-                                            <>
-                                                <video
-                                                    key={videoUrl} // Force re-render on new URL
-                                                    src={videoUrl}
-                                                    className="w-full h-full object-contain"
-                                                    controls
-                                                    playsInline
-                                                    onError={(e) => {
-                                                        const target = e.currentTarget;
-                                                        console.error("Parent video error:", target.error);
-                                                        target.style.display = 'none';
-                                                        target.nextElementSibling?.classList.remove('hidden');
-                                                    }}
-                                                />
-                                                <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                                                    <Wand2 className="w-8 h-8 mb-2 opacity-50" />
-                                                    <p>Video loading failed.</p>
-                                                    <p className="text-xs opacity-75">Try a different file format.</p>
+                                        {(() => {
+                                            const ytId = videoUrl ? getYoutubeId(videoUrl) : null;
+
+                                            if (ytId) {
+                                                return (
+                                                    <iframe
+                                                        width="100%"
+                                                        height="100%"
+                                                        src={`https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`}
+                                                        title="YouTube video player"
+                                                        frameBorder="0"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                );
+                                            }
+
+                                            return videoUrl ? (
+                                                <>
+                                                    <video
+                                                        key={videoUrl} // Force re-render on new URL
+                                                        src={videoUrl}
+                                                        className="w-full h-full object-contain"
+                                                        controls
+                                                        playsInline
+                                                        onError={(e) => {
+                                                            const target = e.currentTarget;
+                                                            console.error("Parent video error:", target.error);
+                                                            target.style.display = 'none';
+                                                            target.nextElementSibling?.classList.remove('hidden');
+                                                        }}
+                                                    />
+                                                    <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                                                        <Wand2 className="w-8 h-8 mb-2 opacity-50" />
+                                                        <p>Video loading failed.</p>
+                                                        <p className="text-xs opacity-75">Try a different file format.</p>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div>
+                                                    <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                                        <Play className="w-8 h-8 text-purple-400 ml-1" />
+                                                    </div>
+                                                    <p className="text-gray-400">Preview Unavailable</p>
                                                 </div>
-                                            </>
-                                        ) : (
-                                            <div>
-                                                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                                                    <Play className="w-8 h-8 text-purple-400 ml-1" />
-                                                </div>
-                                                <p className="text-gray-400">Preview Unavailable</p>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                 ) : (
                                     <div className="text-center">
@@ -693,31 +712,55 @@ export default function RepurposeWizard() {
                                             <>
                                                 {/* Video Preview with Media Fragments for Clips */}
                                                 {/* Video Preview with Media Fragments for Clips */}
-                                                {videoUrl ? (
-                                                    <video
-                                                        key={`vid-${item.id}`} // Force re-render for each item
-                                                        src={`${videoUrl}#t=${item.startTime},${item.endTime}`}
-                                                        className="w-full h-full object-cover"
-                                                        controls
-                                                        playsInline
-                                                        preload="metadata"
-                                                        onError={(e) => {
-                                                            const target = e.currentTarget;
-                                                            console.error("Clip preview error:", target.error);
-                                                            target.style.display = 'none';
-                                                            target.nextElementSibling?.classList.remove('hidden');
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
-                                                        <p className="text-gray-500">Preview Unavailable</p>
-                                                    </div>
-                                                )}
+                                                {/* Video Preview with Media Fragments for Clips */}
+                                                {/* Video Preview with Media Fragments for Clips */}
+                                                {(() => {
+                                                    const ytId = videoUrl ? getYoutubeId(videoUrl) : null;
 
-                                                <div className="hidden absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-center p-4">
-                                                    <Wand2 className="w-6 h-6 text-gray-500 mb-2" />
-                                                    <p className="text-gray-400 text-xs">Video loading failed.</p>
-                                                </div>
+                                                    if (ytId) {
+                                                        return (
+                                                            <div className="w-full h-full">
+                                                                <iframe
+                                                                    width="100%"
+                                                                    height="100%"
+                                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&autoplay=0&rel=0`}
+                                                                    title="YouTube video player"
+                                                                    frameBorder="0"
+                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                    allowFullScreen
+                                                                    className="w-full h-full object-cover pointer-events-auto z-20 relative"
+                                                                />
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return videoUrl ? (
+                                                        <>
+                                                            <video
+                                                                key={`vid-${item.id}`} // Force re-render for each item
+                                                                src={`${videoUrl}#t=${item.startTime},${item.endTime}`}
+                                                                className="w-full h-full object-cover"
+                                                                controls
+                                                                playsInline
+                                                                preload="metadata"
+                                                                onError={(e) => {
+                                                                    const target = e.currentTarget;
+                                                                    console.error("Clip preview error:", target.error);
+                                                                    target.style.display = 'none';
+                                                                    target.nextElementSibling?.classList.remove('hidden');
+                                                                }}
+                                                            />
+                                                            <div className="hidden absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-center p-4">
+                                                                <Wand2 className="w-6 h-6 text-gray-500 mb-2" />
+                                                                <p className="text-gray-400 text-xs">Video loading failed.</p>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
+                                                            <p className="text-gray-500">Preview Unavailable</p>
+                                                        </div>
+                                                    );
+                                                })()}
 
                                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 pointer-events-none">
                                                     <h3 className="font-bold text-white text-lg mb-1 leading-tight">{item.title}</h3>
@@ -783,6 +826,13 @@ export default function RepurposeWizard() {
             </main>
         </div>
     );
+}
+
+// Helper to get YouTube ID
+function getYoutubeId(url: string) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
 }
 
 // Icon helper
