@@ -43,6 +43,31 @@ export default function SchedulePage() {
 
     useEffect(() => {
         setMounted(true);
+
+        // Check for URL params to pre-fill data from Repurpose Wizard
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const title = params.get("title");
+            const description = params.get("description");
+
+            const broadcast = params.get("broadcast");
+
+            if (title || description) {
+                setNewPost((prev) => ({
+                    ...prev,
+                    title: title || "",
+                    content: description || "",
+                }));
+
+                if (broadcast === "true") {
+                    setBroadcastMode(true);
+                }
+
+                // Remove params from URL to avoid reopening on refresh
+                window.history.replaceState({}, "", "/schedule");
+                setShowScheduleModal(true);
+            }
+        }
     }, []);
 
     const [view, setView] = useState<"calendar" | "list">("list");

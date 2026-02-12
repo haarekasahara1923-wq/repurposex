@@ -45,6 +45,9 @@ interface GeneratedItem {
     type: "short" | "text";
     status: "ready" | "scheduled" | "published";
     platform?: string;
+    startTime?: number;
+    endTime?: number;
+    previewUrl?: string; // Add this
 }
 
 export default function RepurposeWizard() {
@@ -59,6 +62,18 @@ export default function RepurposeWizard() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [urlInput, setUrlInput] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [videoUrl, setVideoUrl] = useState<string | null>(null); // New state for video URL
+
+    // Create object URL when file is selected
+    useEffect(() => {
+        if (selectedFile && contentType === "video") {
+            const url = URL.createObjectURL(selectedFile);
+            setVideoUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else if (urlInput && contentType === "video") {
+            setVideoUrl(urlInput); // Use URL directly if provided
+        }
+    }, [selectedFile, urlInput, contentType]);
 
     // Configuration State
     const [videoConfig, setVideoConfig] = useState({
@@ -134,6 +149,10 @@ export default function RepurposeWizard() {
         const count = contentType === "video" ? videoConfig.numShorts : docConfig.numPieces;
 
         for (let i = 1; i <= count; i++) {
+            // Generate random timestamps for video clips
+            const startTime = i * 30; // Start every 30 seconds
+            const endTime = startTime + 15; // 15 second clips
+
             items.push({
                 id: `gen-${i}`,
                 title: contentType === "video"
@@ -143,7 +162,9 @@ export default function RepurposeWizard() {
                     ? "Optimized for retention with AI captions and dynamic cuts."
                     : "Enhanced with viral hooks and clear call-to-action.",
                 type: contentType === "video" ? "short" : "text",
-                status: "ready"
+                status: "ready",
+                startTime: contentType === "video" ? startTime : undefined,
+                endTime: contentType === "video" ? endTime : undefined
             });
         }
         setGeneratedItems(items);
@@ -162,8 +183,57 @@ export default function RepurposeWizard() {
     };
 
     const handleAction = (id: string, action: "schedule" | "broadcast" | "download") => {
-        toast.success(`Action '${action}' triggered for item`);
-        // In real app, this would open modals or trigger downloads
+        const item = generatedItems.find(i => i.id === id);
+        if (!item) return;
+
+        if (action === "download") {
+            try {
+                if (contentType === "video" && videoUrl) {
+                    // Download video clip (simulated by downloading original)
+                    const a = document.createElement("a");
+                    a.href = videoUrl;
+                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    toast.success("Download started!");
+                } else {
+                    // Download text
+                    const blob = new Blob([`${item.title}\n\n${item.description}`], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    toast.success("Download started!");
+                }
+            } catch (error) {
+                console.error("Download failed:", error);
+                toast.error("Failed to download file.");
+            }
+        } else if (action === "schedule") {
+            // Navigate to schedule page with data
+            const params = new URLSearchParams({
+                title: item.title,
+                description: item.description,
+                type: item.type
+            });
+            router.push(`/schedule?${params.toString()}`);
+            toast.success("Redirecting to scheduler...");
+        } else if (action === "broadcast") {
+            // Navigate to schedule page in broadcast mode
+            const params = new URLSearchParams({
+                title: item.title,
+                description: item.description,
+                type: item.type,
+                broadcast: "true"
+            });
+            router.push(`/schedule?${params.toString()}`);
+            toast.success("Preparing broadcast...");
+        }
     };
 
     return (
@@ -565,15 +635,27 @@ export default function RepurposeWizard() {
                                     <div className="aspect-[9/16] bg-black relative flex items-center justify-center">
                                         {contentType === "video" ? (
                                             <>
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-6">
+                                                {/* Video Preview with Media Fragments for Clips */}
+                                                {videoUrl ? (
+                                                    <video
+                                                        src={`${videoUrl}#t=${item.startTime},${item.endTime}`}
+                                                        className="w-full h-full object-cover"
+                                                        controls
+                                                        preload="metadata"
+                                                    />
+                                                ) : (
+                                                    <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
+                                                        <p className="text-gray-500">Video not found</p>
+                                                    </div>
+                                                )}
+
+                                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 pointer-events-none">
                                                     <h3 className="font-bold text-white text-lg mb-1 leading-tight">{item.title}</h3>
                                                     <p className="text-xs text-gray-300 line-clamp-2">{item.description}</p>
                                                 </div>
-                                                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center cursor-pointer hover:bg-white/30 transition shadow-lg">
-                                                    <Play className="w-5 h-5 fill-white text-white ml-1" />
-                                                </div>
+
                                                 {/* Badges */}
-                                                <div className="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-lg">
+                                                <div className="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-lg z-10 pointer-events-none">
                                                     AI Captions
                                                 </div>
                                             </>
