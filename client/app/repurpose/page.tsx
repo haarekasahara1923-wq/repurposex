@@ -400,7 +400,7 @@ export default function RepurposeWizard() {
                             {/* Left: Input Preview (Mock) */}
                             <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex items-center justify-center min-h-[300px]">
                                 {contentType === "video" ? (
-                                    <div className="text-center w-full h-full flex items-center justify-center bg-black rounded-lg overflow-hidden relative">
+                                    <div className="w-full aspect-video bg-black rounded-lg overflow-hidden relative shadow-lg">
                                         {(() => {
                                             const ytId = videoUrl ? getYoutubeId(videoUrl) : null;
 
