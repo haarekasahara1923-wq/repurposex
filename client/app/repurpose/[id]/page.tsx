@@ -8,20 +8,36 @@ import {
     ArrowLeft,
     Wand2,
     Loader2,
-    CheckCircle,
-    FileText,
-    Linkedin,
-    Twitter,
-    Instagram,
-    Youtube,
-    Facebook,
-    Copy,
+    Play,
+    Calendar,
+    Share2,
     Download,
-    RefreshCw,
+    Scissors,
+    MonitorPlay,
+    Type,
+    Layout,
+    Smartphone,
+    Twitter,
+    FileText,
+    CheckCircle,
+    Copy,
+    RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { contentAPI, repurposeAPI, ContentAsset, RepurposeJob } from "@/lib/api";
+import { contentAPI, ContentAsset } from "@/lib/api";
 import toast from "react-hot-toast";
+
+// Mock Data Types
+type AspectRatio = "9:16" | "1:1" | "16:9" | "twitter";
+type DocStyle = "blog" | "newsletter" | "mail" | "post";
+
+interface GeneratedItem {
+    id: string;
+    title: string;
+    description: string;
+    type: "short" | "text";
+    status: "ready" | "scheduled" | "published";
+}
 
 export default function RepurposePage() {
     const router = useRouter();
@@ -31,40 +47,45 @@ export default function RepurposePage() {
 
     const [content, setContent] = useState<ContentAsset | null>(null);
     const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState(false);
-    const [job, setJob] = useState<RepurposeJob | null>(null);
-    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
-
     const [mounted, setMounted] = useState(false);
+
+    // Wizard State
+    const [step, setStep] = useState<"configure" | "processing" | "results">("configure");
+    const [processingProgress, setProcessingProgress] = useState(0);
+    const [generatedItems, setGeneratedItems] = useState<GeneratedItem[]>([]);
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+    // Configuration State
+    const [videoConfig, setVideoConfig] = useState({
+        numShorts: 3 as 3 | 6 | 12,
+        aspectRatio: "9:16" as AspectRatio,
+        aiCaptions: true,
+        autoReframe: true
+    });
+
+    const [docConfig, setDocConfig] = useState({
+        numPieces: 4 as 2 | 4 | 6 | 8,
+        style: "post" as DocStyle,
+        aiHooks: true,
+        enhance: true
+    });
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-
     useEffect(() => {
         if (isAuthenticated) {
             loadContent();
         }
-        return () => {
-            if (pollingInterval) clearInterval(pollingInterval);
-        };
     }, [id, isAuthenticated]);
-
-    const [options, setOptions] = useState({
-        outputType: "linkedin_post",
-        tone: "professional",
-        platforms: [] as string[],
-    });
 
     if (!mounted) return null;
 
     if (!isAuthenticated) {
-        router.push("/login");
+        router.push("/login"); // Or show login modal
         return null;
     }
-
-
 
     const loadContent = async () => {
         try {
@@ -80,80 +101,60 @@ export default function RepurposePage() {
         }
     };
 
-    const startRepurposing = async () => {
-        if (!content) return;
+    const isVideo = content?.type?.includes("video") || content?.type === "mp4" || content?.type === "mov";
 
-        try {
-            setProcessing(true);
-            toast.loading("Creating repurposing job...", { id: "repurpose" });
+    const startProcessing = () => {
+        setStep("processing");
+        setProcessingProgress(0);
 
-            const newJob = await repurposeAPI.create({
-                contentId: content.id,
-                outputType: options.outputType,
-                tone: options.tone,
-                platforms: options.platforms,
-            });
-
-            setJob(newJob);
-            toast.success("Job created! Processing...", { id: "repurpose" });
-
-            // Start polling for job status
-            const interval = setInterval(async () => {
-                try {
-                    const updatedJob = await repurposeAPI.getJob(newJob.id);
-                    setJob(updatedJob);
-
-                    if (updatedJob.status === "completed") {
-                        clearInterval(interval);
-                        setProcessing(false);
-                        toast.success("Repurposing complete!", { id: "repurpose" });
-                    } else if (updatedJob.status === "failed") {
-                        clearInterval(interval);
-                        setProcessing(false);
-                        toast.error("Repurposing failed", { id: "repurpose" });
-                    }
-                } catch (error) {
-                    console.error("Failed to poll job:", error);
+        // Simulate AI Processing
+        const interval = setInterval(() => {
+            setProcessingProgress((prev) => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    generateMockResults();
+                    setStep("results");
+                    return 100;
                 }
-            }, 3000); // Poll every 3 seconds
+                return prev + 5; // Faster simulation for demo
+            });
+        }, 100);
+    };
 
-            setPollingInterval(interval);
-        } catch (error: any) {
-            console.error("Repurpose error:", error);
-            const data = error.response?.data;
-            const message = data?.message || data?.error?.message || "Failed to create job";
-            const details = data?.error?.details ? ` (${data.error.details})` : "";
+    const generateMockResults = () => {
+        const items: GeneratedItem[] = [];
+        const count = isVideo ? videoConfig.numShorts : docConfig.numPieces;
 
-            toast.error(message + details, { id: "repurpose" });
-            setProcessing(false);
+        for (let i = 1; i <= count; i++) {
+            items.push({
+                id: `gen-${i}`,
+                title: isVideo
+                    ? `Viral Short #${i}: ${generateHook()}`
+                    : `Engaging Post #${i}: ${generateHook()}`,
+                description: isVideo
+                    ? "Optimized for retention with AI captions and dynamic cuts."
+                    : "Enhanced with viral hooks and clear call-to-action.",
+                type: isVideo ? "short" : "text",
+                status: "ready"
+            });
         }
+        setGeneratedItems(items);
+        toast.success("Content generated successfully!");
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success("Copied to clipboard!");
+    const generateHook = () => {
+        const hooks = [
+            "The Secret Truth About...",
+            "Stop Doing This Immediately!",
+            "How I Gained 10k Followers...",
+            "This Will Change Your Life...",
+            "Unpopular Opinion: AI is..."
+        ];
+        return hooks[Math.floor(Math.random() * hooks.length)];
     };
 
-    const downloadContent = (text: string, filename: string) => {
-        const element = document.createElement("a");
-        const file = new Blob([text], { type: "text/plain" });
-        element.href = URL.createObjectURL(file);
-        element.download = filename;
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
-        toast.success("Downloaded!");
-    };
-
-    const getPlatformIcon = (platform: string) => {
-        const icons: any = {
-            linkedin: <Linkedin className="w-5 h-5" />,
-            twitter: <Twitter className="w-5 h-5" />,
-            instagram: <Instagram className="w-5 h-5" />,
-            youtube: <Youtube className="w-5 h-5" />,
-            facebook: <Facebook className="w-5 h-5" />,
-        };
-        return icons[platform.toLowerCase()] || <FileText className="w-5 h-5" />;
+    const handleAction = (id: string, action: string) => {
+        toast.success(`${action} triggered for item`);
     };
 
     if (loading) {
@@ -170,257 +171,372 @@ export default function RepurposePage() {
     if (!content) return null;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="min-h-screen bg-slate-950 text-white pb-20">
             {/* Header */}
-            <nav className="bg-white/5 backdrop-blur-lg border-b border-white/10">
+            <nav className="bg-slate-900/50 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <Link
-                            href={`/content/${content.id}`}
+                            href={`/content`}
                             className="flex items-center gap-2 text-gray-400 hover:text-white transition"
                         >
                             <ArrowLeft className="w-5 h-5" />
-                            Back to Content
+                            Back to Library
                         </Link>
-
-                        <Link href="/dashboard" className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <Sparkles className="w-8 h-8 text-purple-400" />
-                            <span className="text-xl font-bold text-white">RepurposeX</span>
-                        </Link>
-
-                        <div className="w-32" /> {/* Spacer for centering */}
+                            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-200">
+                                RepurposeX
+                            </span>
+                        </div>
+                        <div className="w-24" /> {/* Spacer */}
                     </div>
                 </div>
             </nav>
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Title */}
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-3">AI Content Repurposing</h1>
-                    <p className="text-gray-400">Transform "{content.title}" into platform-optimized content</p>
-                </div>
+            <main className="max-w-5xl mx-auto px-4 py-12">
 
-                {!job ? (
-                    <>
-                        {/* Repurposing Options */}
-                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 mb-8">
-                            <h2 className="text-2xl font-bold text-white mb-6">Choose Output Format</h2>
-
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                                {[
-                                    { value: "blog_post", label: "Blog Post", desc: "1500+ word article" },
-                                    { value: "linkedin_post", label: "LinkedIn Post", desc: "Professional narrative" },
-                                    { value: "twitter_thread", label: "Twitter Thread", desc: "10-tweet thread" },
-                                    { value: "instagram_caption", label: "Instagram Caption", desc: "Visual-first copy" },
-                                    { value: "youtube_description", label: "YouTube Description", desc: "SEO optimized" },
-                                    { value: "facebook_post", label: "Facebook Post", desc: "Conversational" },
-                                ].map((format) => (
-                                    <button
-                                        key={format.value}
-                                        onClick={() => setOptions({ ...options, outputType: format.value })}
-                                        className={`p-4 rounded-xl border-2 transition text-left ${options.outputType === format.value
-                                            ? "border-purple-500 bg-purple-500/20"
-                                            : "border-white/10 bg-white/5 hover:border-white/30"
-                                            }`}
-                                    >
-                                        <div className="font-semibold text-white mb-1">{format.label}</div>
-                                        <div className="text-sm text-gray-400">{format.desc}</div>
-                                    </button>
-                                ))}
-                            </div>
-
-                            <h3 className="text-xl font-bold text-white mb-4">Choose Tone</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                {[
-                                    { value: "professional", label: "Professional" },
-                                    { value: "casual", label: "Casual" },
-                                    { value: "viral", label: "Viral" },
-                                    { value: "hinglish", label: "Hinglish" },
-                                ].map((tone) => (
-                                    <button
-                                        key={tone.value}
-                                        onClick={() => setOptions({ ...options, tone: tone.value })}
-                                        className={`px-6 py-3 rounded-xl font-semibold transition ${options.tone === tone.value
-                                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                                            : "bg-white/10 text-gray-300 hover:bg-white/20"
-                                            }`}
-                                    >
-                                        {tone.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <button
-                                onClick={startRepurposing}
-                                disabled={processing}
-                                className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold text-lg hover:shadow-lg hover:shadow-purple-500/50 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                            >
-                                {processing ? (
-                                    <>
-                                        <Loader2 className="w-6 h-6 inline mr-2 animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Wand2 className="w-6 h-6 inline mr-2" />
-                                        Generate Content with AI
-                                    </>
-                                )}
-                            </button>
+                {/* Step: Configure */}
+                {step === "configure" && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
+                        <div className="text-center mb-10">
+                            <h1 className="text-4xl font-bold mb-2">Configure Repurposing</h1>
+                            <p className="text-gray-400">"{content.title}"</p>
                         </div>
-                    </>
-                ) : (
-                    <>
-                        {/* Job Progress */}
-                        {job.status !== "completed" && (
-                            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 mb-8">
-                                <div className="text-center">
-                                    <Loader2 className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-4" />
-                                    <h2 className="text-2xl font-bold text-white mb-2">AI is Working...</h2>
-                                    <p className="text-gray-400 mb-6">
-                                        Analyzing and repurposing your content. This may take a minute.
-                                    </p>
-                                    <div className="max-w-md mx-auto">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm text-gray-300">Progress</span>
-                                            <span className="text-sm text-purple-400">{job.progress || 0}%</span>
+
+                        <div className="grid md:grid-cols-2 gap-8">
+                            {/* Left: Input Preview (Mock) */}
+                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex items-center justify-center min-h-[300px]">
+                                {isVideo ? (
+                                    <div className="text-center">
+                                        <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                            <Play className="w-8 h-8 text-purple-400 ml-1" />
                                         </div>
-                                        <div className="w-full bg-white/10 rounded-full h-3">
-                                            <div
-                                                className="bg-gradient-to-r from-purple-600 to-pink-600 h-full rounded-full transition-all duration-500"
-                                                style={{ width: `${job.progress || 0}%` }}
-                                            />
-                                        </div>
+                                        <p className="text-gray-400">Video Preview</p>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <FileText className="w-16 h-16 text-pink-400 mx-auto mb-4" />
+                                        <p className="text-gray-400">Document Preview</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
 
-                        {/* Generated Content */}
-                        {job.status === "completed" && job.result && (
-                            <div className="space-y-6">
-                                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-center gap-3 mb-6">
-                                    <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-green-300 font-semibold">Content Generated Successfully!</p>
-                                        <p className="text-green-400/80 text-sm">
-                                            Your repurposed content is ready. Copy, download, or schedule it.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Generated Content Card */}
-                                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h2 className="text-2xl font-bold text-white">Generated Content</h2>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => copyToClipboard(job.result.content || job.result.contentText)}
-                                                className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 rounded-lg transition flex items-center gap-2"
-                                            >
-                                                <Copy className="w-4 h-4" />
-                                                Copy
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    downloadContent(
-                                                        job.result.content || job.result.contentText,
-                                                        `${content.title}-${options.outputType}.txt`
-                                                    )
-                                                }
-                                                className="px-4 py-2 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 rounded-lg transition flex items-center gap-2"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                                Download
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {job.result.title && (
-                                        <div className="mb-4">
-                                            <h3 className="text-sm font-medium text-gray-400 mb-2">Title</h3>
-                                            <p className="text-xl font-semibold text-white">{job.result.title}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="mb-6">
-                                        <h3 className="text-sm font-medium text-gray-400 mb-2">Content</h3>
-                                        <div className="bg-white/5 rounded-xl p-6 max-h-96 overflow-y-auto">
-                                            <pre className="text-gray-200 whitespace-pre-wrap font-sans">
-                                                {job.result.content || job.result.contentText}
-                                            </pre>
-                                        </div>
-                                    </div>
-
-                                    {job.result.hashtags && job.result.hashtags.length > 0 && (
-                                        <div className="mb-6">
-                                            <h3 className="text-sm font-medium text-gray-400 mb-2">Hashtags</h3>
-                                            <div className="flex flex-wrap gap-2">
-                                                {job.result.hashtags.map((tag: string, index: number) => (
-                                                    <span
-                                                        key={index}
-                                                        className="px-3 py-1 bg-blue-600/20 text-blue-300 rounded-full text-sm"
+                            {/* Right: Settings */}
+                            <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+                                {isVideo ? (
+                                    <div className="space-y-8">
+                                        {/* Long to Shorts */}
+                                        <div>
+                                            <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
+                                                <Scissors className="w-5 h-5 text-purple-400" />
+                                                Long to Shorts
+                                            </label>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {[3, 6, 12].map(num => (
+                                                    <button
+                                                        key={num}
+                                                        onClick={() => setVideoConfig({ ...videoConfig, numShorts: num as 3 | 6 | 12 })}
+                                                        className={`py-3 px-4 rounded-xl border font-bold transition ${videoConfig.numShorts === num
+                                                                ? "bg-purple-600 border-purple-500 text-white"
+                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-purple-500/50"
+                                                            }`}
                                                     >
-                                                        {tag}
-                                                    </span>
+                                                        {num} Shorts
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                AI will identify viral hooks and generate {videoConfig.numShorts} distinct clips.
+                                            </p>
+                                        </div>
+
+                                        {/* Reframing */}
+                                        <div>
+                                            <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
+                                                <Layout className="w-5 h-5 text-pink-400" />
+                                                Reframe Video
+                                            </label>
+                                            <div className="grid grid-cols-4 gap-3">
+                                                {[
+                                                    { id: "9:16", label: "9:16", icon: Smartphone },
+                                                    { id: "1:1", label: "1:1", icon: Layout },
+                                                    { id: "16:9", label: "16:9", icon: MonitorPlay },
+                                                    { id: "twitter", label: "X", icon: Twitter },
+                                                ].map(ratio => (
+                                                    <button
+                                                        key={ratio.id}
+                                                        onClick={() => setVideoConfig({ ...videoConfig, aspectRatio: ratio.id as AspectRatio })}
+                                                        className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border transition ${videoConfig.aspectRatio === ratio.id
+                                                                ? "bg-pink-600/20 border-pink-500 text-white"
+                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-pink-500/50"
+                                                            }`}
+                                                    >
+                                                        <ratio.icon className="w-4 h-4" />
+                                                        <span className="text-xs font-bold">{ratio.label}</span>
+                                                    </button>
                                                 ))}
                                             </div>
                                         </div>
-                                    )}
 
-                                    {job.result.cta && (
-                                        <div className="mb-6">
-                                            <h3 className="text-sm font-medium text-gray-400 mb-2">Call-to-Action</h3>
-                                            <p className="text-gray-200">{job.result.cta}</p>
+                                        {/* AI Features */}
+                                        <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                                                    <Type className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold">AI Captions</h4>
+                                                    <p className="text-xs text-gray-500">Auto-generate subtitles</p>
+                                                </div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={videoConfig.aiCaptions}
+                                                    onChange={(e) => setVideoConfig({ ...videoConfig, aiCaptions: e.target.checked })}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                            </label>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-8">
+                                        {/* Long to Short Text */}
+                                        <div>
+                                            <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
+                                                <FileText className="w-5 h-5 text-pink-400" />
+                                                Long to Content Pieces
+                                            </label>
+                                            <div className="grid grid-cols-4 gap-3">
+                                                {[2, 4, 6, 8].map(num => (
+                                                    <button
+                                                        key={num}
+                                                        onClick={() => setDocConfig({ ...docConfig, numPieces: num as 2 | 4 | 6 | 8 })}
+                                                        className={`py-3 px-4 rounded-xl border font-bold transition ${docConfig.numPieces === num
+                                                                ? "bg-pink-600 border-pink-500 text-white"
+                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-pink-500/50"
+                                                            }`}
+                                                    >
+                                                        {num}x
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                                {/* Action Buttons */}
-                                <div className="flex justify-center gap-4">
-                                    <button
-                                        onClick={() => {
-                                            setJob(null);
-                                            setProcessing(false);
-                                        }}
-                                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition flex items-center gap-2"
-                                    >
-                                        <RefreshCw className="w-5 h-5" />
-                                        Generate Another
-                                    </button>
-                                    <Link
-                                        href="/schedule"
-                                        className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition"
-                                    >
-                                        Schedule Post
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
+                                        {/* Style Selection */}
+                                        <div>
+                                            <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
+                                                <Wand2 className="w-5 h-5 text-purple-400" />
+                                                Content Style
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {["blog", "newsletter", "mail", "post"].map(style => (
+                                                    <button
+                                                        key={style}
+                                                        onClick={() => setDocConfig({ ...docConfig, style: style as DocStyle })}
+                                                        className={`py-3 px-4 rounded-xl border font-bold capitalize transition ${docConfig.style === style
+                                                                ? "bg-purple-600/20 border-purple-500 text-white"
+                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-purple-500/50"
+                                                            }`}
+                                                    >
+                                                        {style}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                        {/* Failed State */}
-                        {job.status === "failed" && (
-                            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
-                                <p className="text-red-300 font-semibold mb-2">Repurposing Failed</p>
-                                {job.errorMessage && (
-                                    <p className="text-red-400/80 text-sm mb-4 bg-red-900/20 p-3 rounded-lg border border-red-900/30 font-mono">
-                                        Error: {job.errorMessage}
-                                    </p>
+                                        {/* AI Features */}
+                                        <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
+                                                    <Sparkles className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold">AI Hooks & Enhance</h4>
+                                                    <p className="text-xs text-gray-500">Add viral hooks instantly</p>
+                                                </div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={docConfig.aiHooks}
+                                                    onChange={(e) => setDocConfig({ ...docConfig, aiHooks: e.target.checked })}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                                            </label>
+                                        </div>
+                                    </div>
                                 )}
+
                                 <button
-                                    onClick={() => {
-                                        setJob(null);
-                                        setProcessing(false);
-                                    }}
-                                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition"
+                                    onClick={startProcessing}
+                                    className="w-full mt-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-purple-500/25 flex items-center justify-center gap-2"
                                 >
-                                    Try Again
+                                    <Wand2 className="w-6 h-6" />
+                                    Generate Magic
                                 </button>
                             </div>
-                        )}
-                    </>
+                        </div>
+                    </div>
                 )}
-            </div>
+
+                {/* Step: Processing */}
+                {step === "processing" && (
+                    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center animate-in fade-in zoom-in duration-500">
+                        <div className="relative w-32 h-32 mb-8">
+                            <div className="absolute inset-0 border-4 border-slate-800 rounded-full" />
+                            <div className="absolute inset-0 border-4 border-purple-500 rounded-full border-t-transparent animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-2xl font-bold">{processingProgress}%</span>
+                            </div>
+                        </div>
+                        <h2 className="text-3xl font-bold mb-2">AI is working its magic...</h2>
+                        <p className="text-gray-400 max-w-md mx-auto">
+                            Identifying viral moments, reframing content, and generating captions.
+                        </p>
+                    </div>
+                )}
+
+                {/* Step: Results */}
+                {step === "results" && (
+                    <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                            <div>
+                                <h2 className="text-3xl font-bold mb-1">Your Repurposed Content</h2>
+                                <p className="text-gray-400">
+                                    Generated {generatedItems.length} {isVideo ? "Shorts" : "Pieces"} from "{content.title}".
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setStep("configure")}
+                                    className="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition"
+                                >
+                                    Start Over
+                                </button>
+                                <button
+                                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-lg hover:shadow-purple-500/25 text-white rounded-lg font-bold transition"
+                                    onClick={() => toast.success(`Broadcasting ${generatedItems.filter(i => selectedItems.has(i.id)).length} items!`)}
+                                >
+                                    Broadcast Selected
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Bulk Selection Toggle */}
+                        <div className="flex items-center gap-2 mb-4">
+                            <input
+                                type="checkbox"
+                                id="selectAll"
+                                checked={selectedItems.size === generatedItems.length}
+                                onChange={(e) => {
+                                    if (e.target.checked) {
+                                        setSelectedItems(new Set(generatedItems.map(i => i.id)));
+                                    } else {
+                                        setSelectedItems(new Set());
+                                    }
+                                }}
+                                className="w-5 h-5 rounded border-gray-600 bg-slate-800 text-purple-600 focus:ring-purple-500"
+                            />
+                            <label htmlFor="selectAll" className="text-sm font-medium text-gray-300 cursor-pointer select-none">
+                                Select All {isVideo ? "Shorts" : "Pieces"}
+                            </label>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {generatedItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className={`relative bg-slate-900 border rounded-2xl overflow-hidden group transition-all duration-300 ${selectedItems.has(item.id)
+                                            ? "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+                                            : "border-slate-800 hover:border-purple-500/50"
+                                        }`}
+                                >
+                                    {/* Selection Checkbox */}
+                                    <div className="absolute top-3 left-3 z-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedItems.has(item.id)}
+                                            onChange={(e) => {
+                                                const newSet = new Set(selectedItems);
+                                                if (e.target.checked) newSet.add(item.id);
+                                                else newSet.delete(item.id);
+                                                setSelectedItems(newSet);
+                                            }}
+                                            className="w-5 h-5 rounded border-white/20 bg-black/50 backdrop-blur text-purple-600 focus:ring-purple-500"
+                                        />
+                                    </div>
+
+                                    {/* Preview Area */}
+                                    <div className="aspect-[9/16] bg-black relative flex items-center justify-center">
+                                        {isVideo ? (
+                                            <>
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-6">
+                                                    <h3 className="font-bold text-white text-lg mb-1 leading-tight">{item.title}</h3>
+                                                    <p className="text-xs text-gray-300 line-clamp-2">{item.description}</p>
+                                                </div>
+                                                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center cursor-pointer hover:bg-white/30 transition shadow-lg">
+                                                    <Play className="w-5 h-5 fill-white text-white ml-1" />
+                                                </div>
+                                                {/* Badges */}
+                                                <div className="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-lg">
+                                                    AI Captions
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="p-8 bg-white text-black h-full w-full flex flex-col relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                                    <FileText className="w-24 h-24" />
+                                                </div>
+                                                <h3 className="font-bold text-xl mb-4 relative z-10">{item.title}</h3>
+                                                <div className="space-y-3 relative z-10 opacity-60">
+                                                    <div className="h-2 bg-black rounded w-full" />
+                                                    <div className="h-2 bg-black rounded w-5/6" />
+                                                    <div className="h-2 bg-black rounded w-4/6" />
+                                                    <div className="h-2 bg-black rounded w-full" />
+                                                    <div className="h-2 bg-black rounded w-3/4" />
+                                                </div>
+                                                <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
+                                                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">BLOG</span>
+                                                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">SEO</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="p-4 grid grid-cols-3 gap-2 bg-slate-900 border-t border-slate-800">
+                                        <button
+                                            onClick={() => handleAction(item.id, "schedule")}
+                                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
+                                        >
+                                            <Calendar className="w-4 h-4 group-hover/btn:text-blue-400 transition-colors" />
+                                            <span className="text-[10px] uppercase font-bold">Schedule</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction(item.id, "broadcast")}
+                                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
+                                        >
+                                            <Share2 className="w-4 h-4 group-hover/btn:text-green-400 transition-colors" />
+                                            <span className="text-[10px] uppercase font-bold">Post</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction(item.id, "download")}
+                                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
+                                        >
+                                            <Download className="w-4 h-4 group-hover/btn:text-purple-400 transition-colors" />
+                                            <span className="text-[10px] uppercase font-bold">Download</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </main>
         </div>
     );
 }
