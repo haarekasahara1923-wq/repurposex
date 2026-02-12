@@ -18,6 +18,7 @@ import {
     Facebook,
     MessageCircle, // Fallback
     Check,
+    Globe,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
@@ -69,14 +70,49 @@ export default function SchedulePage() {
 
     const [broadcastMode, setBroadcastMode] = useState(false); // If true, immediate post
 
-    // Available platforms
-    const availablePlatforms = [
+    // Dynamic platforms state
+    const [platforms, setPlatforms] = useState<{ id: string, name: string, icon: any, color: string }[]>([
         { id: "linkedin", name: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
         { id: "twitter", name: "Twitter", icon: Twitter, color: "text-sky-400" },
         { id: "instagram", name: "Instagram", icon: Instagram, color: "text-pink-500" },
         { id: "facebook", name: "Facebook", icon: Facebook, color: "text-blue-600" },
         { id: "youtube", name: "YouTube", icon: Youtube, color: "text-red-600" },
-    ];
+    ]);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('social_accounts');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Filter connected accounts and map to platform structure
+                const connected = parsed
+                    .filter((acc: any) => acc.connected)
+                    .map((acc: any) => ({
+                        id: acc.id, // Use unique account ID
+                        name: acc.platform, // Or acc.name if users prefer "My Brand Page"
+                        icon: getIconComponent(acc.platform),
+                        color: acc.color || "text-gray-400"
+                    }));
+
+                if (connected.length > 0) {
+                    setPlatforms(connected);
+                }
+            } catch (e) {
+                console.error("Failed to load platforms", e);
+            }
+        }
+    }, []);
+
+    const getIconComponent = (platformName: string) => {
+        const p = platformName.toLowerCase();
+        if (p.includes("facebook")) return Facebook;
+        if (p.includes("instagram")) return Instagram;
+        if (p.includes("twitter")) return Twitter;
+        if (p.includes("linkedin")) return Linkedin;
+        if (p.includes("youtube")) return Youtube;
+        if (p.includes("tiktok")) return MessageCircle;
+        return Globe; // Default
+    };
 
     if (!mounted) return null;
 
@@ -86,11 +122,17 @@ export default function SchedulePage() {
     }
 
     const getPlatformIcon = (platformId: string) => {
-        const platform = availablePlatforms.find(p => p.id === platformId);
+        // Try to find in dynamic platforms first
+        const platform = platforms.find(p => p.id === platformId);
         if (platform) {
             const Icon = platform.icon;
-            return <Icon className={`w-5 h-5 ${platform.color}`} />;
+            // Check if color is a full class string or just text color
+            // For older accounts it might be "text-blue-600", for new ones it might be "text-blue-600 bg-blue-600/10"
+            // We just want text color here usually, but let's pass it all
+            return <Icon className={`w-5 h-5 ${platform.color.split(' ')[0]}`} />;
         }
+
+        // Fallback or if using generic IDs
         return <Send className="w-5 h-5" />;
     };
 
@@ -127,7 +169,7 @@ export default function SchedulePage() {
 
                 newPosts.push({
                     id: (Date.now() + index).toString(),
-                    title: `${newPost.title} (${availablePlatforms.find(p => p.id === platformId)?.name})`,
+                    title: `${newPost.title} (${platforms.find(p => p.id === platformId)?.name})`,
                     content: newPost.content,
                     platforms: [platformId],
                     scheduledFor: new Date(time),
@@ -435,13 +477,13 @@ export default function SchedulePage() {
                                     Select Platforms
                                 </label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {availablePlatforms.map(platform => (
+                                    {platforms.map(platform => (
                                         <button
                                             key={platform.id}
                                             onClick={() => togglePlatform(platform.id)}
                                             className={`flex items-center gap-2 p-3 rounded-xl border transition ${newPost.platforms.includes(platform.id)
-                                                    ? 'bg-purple-600/20 border-purple-500 text-white'
-                                                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                                                ? 'bg-purple-600/20 border-purple-500 text-white'
+                                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
                                                 }`}
                                         >
                                             {getPlatformIcon(platform.id)}
@@ -490,7 +532,7 @@ export default function SchedulePage() {
                                                 <div key={platformId} className="flex items-center gap-4">
                                                     <div className="w-32 flex items-center gap-2 text-sm text-gray-300">
                                                         {getPlatformIcon(platformId)}
-                                                        <span>{availablePlatforms.find(p => p.id === platformId)?.name}</span>
+                                                        <span>{platforms.find(p => p.id === platformId)?.name}</span>
                                                     </div>
                                                     <input
                                                         type="datetime-local"
@@ -516,8 +558,8 @@ export default function SchedulePage() {
                             <button
                                 onClick={handleSchedule}
                                 className={`flex-1 px-6 py-3 text-white rounded-xl font-semibold hover:shadow-lg transition ${broadcastMode
-                                        ? "bg-gradient-to-r from-pink-600 to-red-600 hover:shadow-pink-500/50"
-                                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-purple-500/50"
+                                    ? "bg-gradient-to-r from-pink-600 to-red-600 hover:shadow-pink-500/50"
+                                    : "bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-purple-500/50"
                                     }`}
                             >
                                 {broadcastMode ? "Broadcast Now" : "Schedule Post"}

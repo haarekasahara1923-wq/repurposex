@@ -56,7 +56,13 @@ export default function SocialMediaPage() {
         { id: "9", platform: "Threads", name: "My Threads", handle: "@mythreads", connected: false, icon: MessageCircle, color: "text-black bg-white/10" },
     ];
 
-    const [accounts, setAccounts] = useState(initialAccounts);
+    const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+
+    // Edit Link Modal State
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingAccount, setEditingAccount] = useState<SocialAccount | null>(null);
+    const [linkInput, setLinkInput] = useState("");
+
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newPlatformName, setNewPlatformName] = useState("");
     const [newPlatformUrl, setNewPlatformUrl] = useState("");
@@ -68,13 +74,90 @@ export default function SocialMediaPage() {
         return null;
     }
 
-    const toggleConnection = (id: string) => {
-        setAccounts(accounts.map(acc => {
-            if (acc.id === id) {
-                const newStatus = !acc.connected;
-                toast.success(`${acc.platform} ${newStatus ? 'connected' : 'disconnected'} successfully`);
-                return { ...acc, connected: newStatus };
+    // Load from localStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('social_accounts');
+        if (saved) {
+            try {
+                // Restore icon components based on platform name or ID since JSON doesn't store functions
+                const parsed = JSON.parse(saved);
+                const restored = parsed.map((acc: any) => ({
+                    ...acc,
+                    icon: getIconForPlatform(acc.platform, acc.id)
+                }));
+                setAccounts(restored);
+            } catch (e) {
+                console.error("Failed to parse accounts", e);
+                setAccounts(initialAccounts);
             }
+        } else {
+            setAccounts(initialAccounts);
+        }
+    }, []);
+
+    // Save to localStorage whenever accounts change
+    useEffect(() => {
+        if (accounts.length > 0) {
+            // Remove icon component before saving
+            const toSave = accounts.map(({ icon, ...rest }) => rest);
+            localStorage.setItem('social_accounts', JSON.stringify(toSave));
+        }
+    }, [accounts]);
+
+    const getIconForPlatform = (platform: string, id: string) => {
+        const p = platform.toLowerCase();
+        if (p.includes("facebook")) return Facebook;
+        if (p.includes("instagram")) return Instagram;
+        if (p.includes("twitter")) return Twitter;
+        if (p.includes("linkedin")) return Linkedin;
+        if (p.includes("youtube")) return Youtube;
+        if (p.includes("tiktok")) return MessageCircle;
+        // fallback to finding in initialAccounts if possible, or default
+        const initial = initialAccounts.find(a => a.id === id);
+        return initial ? initial.icon : Globe;
+    };
+
+    const handleConnectClick = (account: SocialAccount) => {
+        if (account.connected) {
+            // If already connected, maybe just disconnect? Or ask?
+            // For now simple toggle off
+            updateAccountStatus(account.id, false);
+            toast.success(`${account.platform} disconnected`);
+        } else {
+            // Open modal to enter link before connecting
+            openEditModal(account);
+        }
+    };
+
+    const openEditModal = (account: SocialAccount) => {
+        setEditingAccount(account);
+        setLinkInput(account.handle === "@" + account.platform.toLowerCase().replace(" ", "") ? "" : account.handle);
+        setEditModalOpen(true);
+    };
+
+    const handleSaveLink = () => {
+        if (!editingAccount) return;
+        if (!linkInput) {
+            toast.error("Please enter a valid URL or handle");
+            return;
+        }
+
+        setAccounts(prev => prev.map(acc => {
+            if (acc.id === editingAccount.id) {
+                return { ...acc, handle: linkInput, connected: true };
+            }
+            return acc;
+        }));
+
+        toast.success(`Connected to ${editingAccount.platform}`);
+        setEditModalOpen(false);
+        setEditingAccount(null);
+        setLinkInput("");
+    };
+
+    const updateAccountStatus = (id: string, status: boolean) => {
+        setAccounts(prev => prev.map(acc => {
+            if (acc.id === id) return { ...acc, connected: status };
             return acc;
         }));
     };
@@ -85,7 +168,7 @@ export default function SocialMediaPage() {
             return;
         }
 
-        const newAccount = {
+        const newAccount: SocialAccount = {
             id: Date.now().toString(),
             platform: newPlatformName,
             name: newPlatformName,
@@ -95,7 +178,6 @@ export default function SocialMediaPage() {
             color: "text-purple-400 bg-purple-400/10"
         };
 
-        // Use functional state update with spread syntax to correctly append to the array
         setAccounts(prev => [...prev, newAccount]);
         setIsAddModalOpen(false);
         setNewPlatformName("");
@@ -140,24 +222,34 @@ export default function SocialMediaPage() {
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-white">{account.platform}</h3>
-                                        <p className="text-sm text-gray-400">{account.handle}</p>
+                                        <p className="text-sm text-gray-400 truncate max-w-[150px]">{account.handle}</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-between mt-4">
+                                <div className="flex items-center justify-between mt-4 gap-2">
                                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${account.connected ? 'bg-green-500/10 text-green-400' : 'bg-gray-500/10 text-gray-400'}`}>
                                         {account.connected ? 'Connected' : 'Not Connected'}
                                     </span>
 
-                                    <button
-                                        onClick={() => toggleConnection(account.id)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition ${account.connected
-                                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                            : 'bg-white/10 text-white hover:bg-white/20'
-                                            }`}
-                                    >
-                                        {account.connected ? 'Disconnect' : 'Connect'}
-                                    </button>
+                                    <div className="flex gap-2">
+                                        {account.connected && (
+                                            <button
+                                                onClick={() => openEditModal(account)}
+                                                className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm transition"
+                                            >
+                                                Edit Link
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => handleConnectClick(account)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${account.connected
+                                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                                : 'bg-white/10 text-white hover:bg-white/20'
+                                                }`}
+                                        >
+                                            {account.connected ? 'Disconnect' : 'Connect'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -203,6 +295,43 @@ export default function SocialMediaPage() {
                                 className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 py-3 rounded-xl text-white font-bold hover:shadow-lg hover:shadow-purple-500/50 transition"
                             >
                                 Add Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Link Modal */}
+            {editModalOpen && editingAccount && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-white/20 rounded-2xl p-8 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-white">Connect {editingAccount.platform}</h2>
+                            <button onClick={() => setEditModalOpen(false)} className="text-gray-400 hover:text-white">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-gray-400 text-sm">
+                                Enter the URL or handle for your {editingAccount.platform} account.
+                            </p>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Link / Handle</label>
+                                <input
+                                    type="text"
+                                    value={linkInput}
+                                    onChange={(e) => setLinkInput(e.target.value)}
+                                    placeholder={`https://...`}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSaveLink}
+                                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 py-3 rounded-xl text-white font-bold hover:shadow-lg hover:shadow-purple-500/50 transition"
+                            >
+                                Save & Connect
                             </button>
                         </div>
                     </div>
