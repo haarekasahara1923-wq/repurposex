@@ -14,7 +14,8 @@ import {
     AlertCircle,
     Share2,
     Globe,
-    MessageCircle, // for Reddit/Threads approximation if needed or use specific icons if available in lucide
+    MessageCircle,
+    X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "@/components/Sidebar";
@@ -151,8 +152,8 @@ export default function SocialMediaPage() {
                                     <button
                                         onClick={() => toggleConnection(account.id)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition ${account.connected
-                                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                                : 'bg-white/10 text-white hover:bg-white/20'
+                                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                            : 'bg-white/10 text-white hover:bg-white/20'
                                             }`}
                                     >
                                         {account.connected ? 'Disconnect' : 'Connect'}
