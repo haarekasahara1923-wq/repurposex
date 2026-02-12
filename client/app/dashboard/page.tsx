@@ -39,7 +39,11 @@ export default function DashboardPage() {
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+
+        if (isAuthenticated && user?.role === 'admin') {
+            router.push('/admin');
+        }
+    }, [isAuthenticated, user, router]);
 
     const [stats, setStats] = useState({
         totalContent: 0,

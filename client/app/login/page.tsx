@@ -32,6 +32,8 @@ export default function LoginPage() {
         try {
             const user = await login(formData.email, formData.password);
 
+            console.log('Login attempt result:', user);
+
             if (user?.role === 'admin') {
                 router.push('/admin');
             } else {
