@@ -20,7 +20,7 @@ interface UserData {
 }
 
 export default function AdminDashboard() {
-    const { user, isAuthenticated, loading } = useAuth();
+    const { user, isAuthenticated, loading, logout } = useAuth();
     const router = useRouter();
     const [users, setUsers] = useState<UserData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -94,8 +94,14 @@ export default function AdminDashboard() {
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                    <div className="text-gray-400">
-                        Logged in as: <span className="text-white font-semibold">{user?.email}</span>
+                    <div className="flex items-center gap-4 text-gray-400">
+                        <span>Logged in as: <span className="text-white font-semibold">{user?.email}</span></span>
+                        <button
+                            onClick={() => logout()}
+                            className="text-red-400 hover:text-red-300 underline font-semibold transition"
+                        >
+                            Logout
+                        </button>
                     </div>
                 </div>
 
@@ -126,8 +132,8 @@ export default function AdminDashboard() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded text-xs font-semibold ${userData.role === 'agency' ? 'bg-blue-500/20 text-blue-400' :
-                                                    userData.role === 'admin' ? 'bg-red-500/20 text-red-400' :
-                                                        'bg-green-500/20 text-green-400'
+                                                userData.role === 'admin' ? 'bg-red-500/20 text-red-400' :
+                                                    'bg-green-500/20 text-green-400'
                                                 }`}>
                                                 {userData.role.toUpperCase()}
                                             </span>
@@ -157,8 +163,8 @@ export default function AdminDashboard() {
                                                     <button
                                                         onClick={() => handleToggleStatus(userData.id, userData.status)}
                                                         className={`px-3 py-1.5 text-white text-xs rounded transition ${userData.status === 'active'
-                                                                ? 'bg-red-600 hover:bg-red-700'
-                                                                : 'bg-green-600 hover:bg-green-700'
+                                                            ? 'bg-red-600 hover:bg-red-700'
+                                                            : 'bg-green-600 hover:bg-green-700'
                                                             }`}
                                                     >
                                                         {userData.status === 'active' ? 'Block' : 'Unblock'}
