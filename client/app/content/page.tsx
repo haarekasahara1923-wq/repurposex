@@ -25,27 +25,20 @@ export default function ContentLibraryPage() {
     const { user, isAuthenticated } = useAuth();
 
     const [mounted, setMounted] = useState(false);
+    const [content, setContent] = useState<ContentAsset[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterType, setFilterType] = useState<string>("all");
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    const [content, setContent] = useState<ContentAsset[]>([]);
-
-    if (!mounted) return null;
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filterType, setFilterType] = useState<string>("all");
-
-    // Redirect if not authenticated
-    if (!isAuthenticated) {
-        router.push("/login");
-        return null;
-    }
-
     useEffect(() => {
-        loadContent();
-    }, []);
+        if (isAuthenticated) {
+            loadContent();
+        }
+    }, [isAuthenticated]);
 
     const loadContent = async () => {
         try {
@@ -70,6 +63,16 @@ export default function ContentLibraryPage() {
             setLoading(false);
         }
     };
+
+    if (!mounted) return null;
+
+    // Redirect if not authenticated
+    if (!isAuthenticated) {
+        router.push("/login");
+        return null;
+    }
+
+
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this content?")) return;

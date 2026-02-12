@@ -59,10 +59,12 @@ function SettingsContent() {
         keywords: "",
     });
 
-    if (!isAuthenticated) {
-        router.push("/login");
-        return null;
-    }
+    const [inviteData, setInviteData] = useState({
+        email: "",
+        clientName: "",
+    });
+
+
 
     const handleSaveProfile = async () => {
         toast.loading("Updating profile...", { id: "profile" });
@@ -123,10 +125,7 @@ function SettingsContent() {
         }
     };
 
-    const [inviteData, setInviteData] = useState({
-        email: "",
-        clientName: "",
-    });
+
 
     const handleInviteClient = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -151,6 +150,11 @@ function SettingsContent() {
     const handleLogout = () => {
         logout();
     };
+
+    if (!isAuthenticated) {
+        router.push("/login");
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">

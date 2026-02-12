@@ -41,6 +41,16 @@ export default function RepurposePage() {
         setMounted(true);
     }, []);
 
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            loadContent();
+        }
+        return () => {
+            if (pollingInterval) clearInterval(pollingInterval);
+        };
+    }, [id, isAuthenticated]);
+
     const [options, setOptions] = useState({
         outputType: "linkedin_post",
         tone: "professional",
@@ -54,12 +64,7 @@ export default function RepurposePage() {
         return null;
     }
 
-    useEffect(() => {
-        loadContent();
-        return () => {
-            if (pollingInterval) clearInterval(pollingInterval);
-        };
-    }, [id]);
+
 
     const loadContent = async () => {
         try {
