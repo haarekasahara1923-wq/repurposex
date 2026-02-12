@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
+import { contentAPI } from "@/lib/api";
 
 // Mock Data Types
 type AspectRatio = "9:16" | "1:1" | "16:9" | "twitter";
@@ -126,9 +127,34 @@ export default function RepurposeWizard() {
         toast.success("Link verified!");
     };
 
-    const startProcessing = () => {
+    const startProcessing = async () => {
         setStep("processing");
         setProcessingProgress(0);
+
+        // Upload to Content Library in the background
+        if (selectedFile) {
+            try {
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+                // backend expects 'type' often, though FormData handles mime type. 
+                // We'll append metadata if needed.
+                formData.append("contentType", contentType);
+
+                // Fire and forget upload for this user flow, or await it?
+                // User wants it in library "baad me" (afterwards) too.
+                contentAPI.upload(formData)
+                    .then(() => {
+                        toast.success("Added to Content Library");
+                    })
+                    .catch(err => {
+                        console.error("Library upload failed", err);
+                        // Don't show error to user to avoid breaking immersion if backend is flaky
+                        // toast.error("Could not save to library"); 
+                    });
+            } catch (e) {
+                console.error("Upload preparation failed", e);
+            }
+        }
 
         // Simulate AI Processing
         const interval = setInterval(() => {
@@ -636,18 +662,30 @@ export default function RepurposeWizard() {
                                         {contentType === "video" ? (
                                             <>
                                                 {/* Video Preview with Media Fragments for Clips */}
+                                                {/* Video Preview with Media Fragments for Clips */}
                                                 {videoUrl ? (
                                                     <video
+                                                        key={`vid-${item.id}`} // Force re-render for each item
                                                         src={`${videoUrl}#t=${item.startTime},${item.endTime}`}
                                                         className="w-full h-full object-cover"
                                                         controls
+                                                        playsInline
                                                         preload="metadata"
+                                                        onError={(e) => {
+                                                            console.error("Video preview error", e);
+                                                            e.currentTarget.style.display = 'none';
+                                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                                        }}
                                                     />
                                                 ) : (
                                                     <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
-                                                        <p className="text-gray-500">Video not found</p>
+                                                        <p className="text-gray-500">Preview Unavailable</p>
                                                     </div>
                                                 )}
+
+                                                <div className="hidden absolute inset-0 bg-slate-800 flex items-center justify-center">
+                                                    <p className="text-gray-400 text-xs">Error loading video</p>
+                                                </div>
 
                                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 pointer-events-none">
                                                     <h3 className="font-bold text-white text-lg mb-1 leading-tight">{item.title}</h3>
