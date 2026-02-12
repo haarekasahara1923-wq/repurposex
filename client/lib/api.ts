@@ -52,7 +52,7 @@ export interface User {
     email: string;
     firstName: string;
     lastName: string;
-    role: 'agency' | 'client';
+    role: 'agency' | 'client' | 'admin';
     businessName?: string;
     phone?: string;
     whatsapp?: string;
@@ -241,6 +241,24 @@ export const subscriptionAPI = {
         const response = await api.post('/api/v1/subscriptions/subscribe', data);
         return response.data;
     },
+};
+
+// Admin API
+export const adminAPI = {
+    getUsers: async () => {
+        const response = await api.get('/api/v1/admin/users');
+        return response.data;
+    },
+
+    toggleStatus: async (userId: string, status: 'active' | 'suspended') => {
+        const response = await api.patch(`/api/v1/admin/users/${userId}/status`, { status });
+        return response.data;
+    },
+
+    grantAccess: async (userId: string, planId?: string) => {
+        const response = await api.post(`/api/v1/admin/users/${userId}/grant-access`, { planId });
+        return response.data;
+    }
 };
 
 export default api;

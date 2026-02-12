@@ -30,8 +30,13 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            await login(formData.email, formData.password);
-            router.push('/dashboard');
+            const user = await login(formData.email, formData.password);
+
+            if (user?.role === 'admin') {
+                router.push('/admin');
+            } else {
+                router.push('/dashboard');
+            }
         } catch (error) {
             // Error is handled in AuthContext with toast
             console.error('Login error:', error);

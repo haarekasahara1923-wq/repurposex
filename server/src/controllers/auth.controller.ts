@@ -181,7 +181,70 @@ export const login = async (req: Request, res: Response) => {
         // Validate input
         const validatedData = loginSchema.parse(req.body);
 
-        // Find user
+        // Check for Admin Credentials from Env
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (adminEmail && adminPassword &&
+            validatedData.email === adminEmail &&
+            validatedData.password === adminPassword) {
+
+            // Check if admin user exists in DB
+            let adminUser = await prisma.user.findUnique({
+                where: { email: adminEmail }
+            });
+
+            if (!adminUser) {
+                // Create Admin User if not exists
+                const passwordHash = await bcrypt.hash(adminPassword, 12);
+                adminUser = await prisma.user.create({
+                    data: {
+                        email: adminEmail,
+                        passwordHash,
+                        fullName: 'Super Admin',
+                        role: 'admin', // Special role
+                        status: 'active',
+                        emailVerified: true
+                    }
+                });
+            } else if (adminUser.role !== 'admin') {
+                // Promote to admin if exists but not admin
+                adminUser = await prisma.user.update({
+                    where: { id: adminUser.id },
+                    data: { role: 'admin' }
+                });
+            }
+
+            // Generate tokens for Admin
+            const { accessToken, refreshToken } = generateTokens(adminUser.id, adminUser.email);
+
+            // Create session
+            await prisma.session.create({
+                data: {
+                    userId: adminUser.id,
+                    token: refreshToken,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                }
+            });
+
+            return res.json({
+                success: true,
+                user: {
+                    id: adminUser.id,
+                    email: adminUser.email,
+                    fullName: adminUser.fullName,
+                    role: 'admin', // Explicitly ensure frontend sees admin
+                    avatarUrl: adminUser.avatarUrl,
+                },
+                token: accessToken,
+                refreshToken,
+                expiresIn: 3600
+            });
+        }
+
+        // Normal User Login Flow
         const user = await prisma.user.findUnique({
             where: { email: validatedData.email }
         });
@@ -218,7 +281,7 @@ export const login = async (req: Request, res: Response) => {
                 success: false,
                 error: {
                     code: 'ACCOUNT_INACTIVE',
-                    message: 'Your account is not active'
+                    message: 'Your account has been suspended or is inactive. Please contact support.'
                 }
             });
         }

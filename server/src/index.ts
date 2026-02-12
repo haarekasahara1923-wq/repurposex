@@ -101,7 +101,10 @@ app.use('/api/v1/repurpose', repurposeRoutes);
 app.use('/api/v1/subscriptions', subscriptionRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/agency', agencyRoutes);
+import adminRoutes from './routes/admin.routes';
+app.use('/api/v1/admin', adminRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

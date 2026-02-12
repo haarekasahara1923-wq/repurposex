@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<User | undefined>;
     signup: (email: string, password: string, firstName: string, lastName: string, role: 'agency' | 'client', businessName?: string, phone?: string, whatsapp?: string) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('user', JSON.stringify(response.user));
             setUser(response.user);
             toast.success('Login successful!');
+            return response.user;
         } catch (error: any) {
             console.error('Login error:', error);
             const message = error.response?.data?.error?.message || error.response?.data?.message || 'Login failed';

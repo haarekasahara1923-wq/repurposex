@@ -7,7 +7,7 @@ export interface AuthRequest extends Request {
         id: string;
         email: string;
         fullName: string;
-        role?: string;
+        role: string;
     };
 }
 
@@ -55,7 +55,8 @@ export const authenticate = async (
                 id: true,
                 email: true,
                 fullName: true,
-                status: true
+                status: true,
+                role: true
             }
         });
 
@@ -82,7 +83,8 @@ export const authenticate = async (
         req.user = {
             id: user.id,
             email: user.email,
-            fullName: user.fullName
+            fullName: user.fullName,
+            role: user.role
         };
 
         next();
@@ -115,4 +117,24 @@ export const authenticate = async (
             }
         });
     }
+};
+
+export const authorize = (roles: string[]) => {
+    return (req: AuthRequest, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                error: { message: 'Not authenticated' }
+            });
+        }
+
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                error: { message: 'Not authorized to access this resource' }
+            });
+        }
+
+        next();
+    };
 };
