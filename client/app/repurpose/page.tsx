@@ -66,13 +66,18 @@ export default function RepurposeWizard() {
     const [videoUrl, setVideoUrl] = useState<string | null>(null); // New state for video URL
 
     // Create object URL when file is selected
+    // Create object URL when file is selected
     useEffect(() => {
         if (selectedFile && contentType === "video") {
             const url = URL.createObjectURL(selectedFile);
             setVideoUrl(url);
-            return () => URL.revokeObjectURL(url);
+            // Cleanup: strictly speaking we should revoke, but to avoid premature revocation issues during re-renders, 
+            // we'll rely on garbage collection when the document unloads or when selectedFile changes significantly.
+            return () => {
+                // URL.revokeObjectURL(url); 
+            };
         } else if (urlInput && contentType === "video") {
-            setVideoUrl(urlInput); // Use URL directly if provided
+            setVideoUrl(urlInput);
         }
     }, [selectedFile, urlInput, contentType]);
 
@@ -395,11 +400,22 @@ export default function RepurposeWizard() {
                             {/* Left: Input Preview (Mock) */}
                             <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex items-center justify-center min-h-[300px]">
                                 {contentType === "video" ? (
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                                            <Play className="w-8 h-8 text-purple-400 ml-1" />
-                                        </div>
-                                        <p className="text-gray-400">Preview Unavailable</p>
+                                    <div className="text-center w-full h-full flex items-center justify-center bg-black rounded-lg overflow-hidden">
+                                        {videoUrl ? (
+                                            <video
+                                                src={videoUrl}
+                                                className="w-full h-full object-contain"
+                                                controls
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <div>
+                                                <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                                    <Play className="w-8 h-8 text-purple-400 ml-1" />
+                                                </div>
+                                                <p className="text-gray-400">Preview Unavailable</p>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="text-center">
@@ -661,7 +677,6 @@ export default function RepurposeWizard() {
                                     <div className="aspect-[9/16] bg-black relative flex items-center justify-center">
                                         {contentType === "video" ? (
                                             <>
-                                                {/* Video Preview with Media Fragments for Clips */}
                                                 {/* Video Preview with Media Fragments for Clips */}
                                                 {videoUrl ? (
                                                     <video
