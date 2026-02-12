@@ -5,30 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     Sparkles,
-    LayoutDashboard,
-    Users,
-    FileText,
-    Calendar,
-    Settings,
-    LogOut,
-    Plus,
-    BarChart3,
-    ArrowRight,
+    Video, // Kept from original for Content Library
+    Upload,
     TrendingUp,
     CheckCircle,
-    AlertCircle,
-    Search,
-    Bell,
-    Menu,
-    X,
-    Video, // Kept from original for Content Library
-    BarChart, // Kept from original for Dashboard icon
-    Clock, // Kept from original for Schedule
-    Building2, // Kept from original for Agency Portal
-    Upload,
+    Clock,
+    Users,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { contentAPI } from "@/lib/api";
+import Sidebar from "@/components/Sidebar";
+import TopNav from "@/components/TopNav";
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -71,106 +58,19 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-            {/* Top Navigation */}
-            <nav className="fixed top-0 w-full bg-white/5 backdrop-blur-lg border-b border-white/10 z-50">
-                <div className="px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => setSidebarOpen(!sidebarOpen)}
-                                className="lg:hidden text-white p-2 hover:bg-white/10 rounded-lg transition"
-                            >
-                                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                            </button>
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="w-8 h-8 text-purple-400" />
-                                <span className="text-xl font-bold text-white">RepurposeX</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <Link
-                                href="/upload"
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition"
-                            >
-                                <Plus className="w-4 h-4" />
-                                <span className="hidden sm:inline">New Content</span>
-                            </Link>
-
-                            <div className="flex items-center gap-3 bg-white/5 pl-4 pr-1 py-1 rounded-full border border-white/10">
-                                <span className="text-sm font-medium text-white hidden sm:inline">
-                                    {getUserName()}
-                                </span>
-                                {user?.avatarUrl ? (
-                                    <img src={user.avatarUrl} alt="Profile" className="w-8 h-8 rounded-full border-2 border-white/20" />
-                                ) : (
-                                    <button className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 ring-white/20">
-                                        {getInitials()}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <TopNav
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                user={user}
+            />
 
             <div className="flex pt-16">
-                {/* Sidebar */}
-                <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:sticky top-16 h-[calc(100vh-4rem)] w-64 bg-white/5 backdrop-blur-lg border-r border-white/10 transition-transform duration-300 z-40`}>
-                    <nav className="p-4 space-y-2">
-                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 bg-purple-600/20 text-white rounded-lg transition">
-                            <BarChart className="w-5 h-5" />
-                            <span>Dashboard</span>
-                        </Link>
-
-                        <Link href="/content" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
-                            <Video className="w-5 h-5" />
-                            <span>Content Library</span>
-                        </Link>
-
-                        <Link href="/repurpose" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
-                            <Sparkles className="w-5 h-5" />
-                            <span>Repurpose</span>
-                        </Link>
-
-                        <Link href="/schedule" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
-                            <Clock className="w-5 h-5" />
-                            <span>Schedule</span>
-                        </Link>
-
-                        <Link href="/analytics" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
-                            <TrendingUp className="w-5 h-5" />
-                            <span>Analytics</span>
-                        </Link>
-
-                        {user?.role === 'agency' ? (
-                            <Link href="/agency" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition border-t border-white/5 mt-2 pt-2">
-                                <Building2 className="w-5 h-5 text-purple-400" />
-                                <span>Agency Portal</span>
-                            </Link>
-                        ) : (
-                            <Link href="/settings?tab=agency" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition border-t border-white/5 mt-2 pt-2">
-                                <Users className="w-5 h-5 text-purple-400" />
-                                <span>Invite Agency</span>
-                            </Link>
-                        )}
-
-                        <div className="pt-4 mt-4 border-t border-white/10">
-                            <Link href="/settings" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition">
-                                <Settings className="w-5 h-5" />
-                                <span>Settings</span>
-                            </Link>
-
-                            <button
-                                onClick={logout}
-                                className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-red-400 rounded-lg transition w-full"
-                            >
-                                <LogOut className="w-5 h-5" />
-                                <span>Logout</span>
-                            </button>
-                        </div>
-                    </nav>
-                </aside>
+                <Sidebar
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                    user={user}
+                    logout={logout}
+                />
 
                 {/* Main Content */}
                 <main className="flex-1 p-6 lg:p-8">
