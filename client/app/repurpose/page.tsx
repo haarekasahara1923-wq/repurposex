@@ -28,7 +28,8 @@ import {
     Linkedin,
     Layout,
     Smartphone,
-    Globe
+    Globe,
+    Files
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
@@ -43,12 +44,13 @@ interface GeneratedItem {
     id: string;
     title: string;
     description: string;
+    content?: string; // Add this for the full content
     type: "short" | "text";
     status: "ready" | "scheduled" | "published";
     platform?: string;
     startTime?: number;
     endTime?: number;
-    previewUrl?: string; // Add this
+    previewUrl?: string;
 }
 
 export default function RepurposeWizard() {
@@ -63,16 +65,14 @@ export default function RepurposeWizard() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [urlInput, setUrlInput] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [videoUrl, setVideoUrl] = useState<string | null>(null); // New state for video URL
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+    const [extractedText, setExtractedText] = useState<string>(""); // New state for document content
 
-    // Create object URL when file is selected
     // Create object URL when file is selected
     useEffect(() => {
         if (selectedFile && contentType === "video") {
             const url = URL.createObjectURL(selectedFile);
             setVideoUrl(url);
-            // Cleanup: strictly speaking we should revoke, but to avoid premature revocation issues during re-renders, 
-            // we'll rely on garbage collection when the document unloads or when selectedFile changes significantly.
             return () => {
                 // URL.revokeObjectURL(url); 
             };
@@ -106,14 +106,30 @@ export default function RepurposeWizard() {
     if (!mounted) return null;
 
     if (!isAuthenticated) {
-        router.push("/login"); // Or show login modal
+        router.push("/login");
         return null;
     }
 
     // Handlers
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
+            const file = e.target.files[0];
+            setSelectedFile(file);
+
+            if (contentType === "document") {
+                if (file.type === "text/plain") {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const text = event.target?.result as string;
+                        setExtractedText(text);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    // Placeholder for other formats while simulation
+                    setExtractedText(`[Content from ${file.name}]\n\nThis is a simulated extraction of your document. In the full version, our AI will parse the entire ${file.name.split('.').pop()?.toUpperCase()} file for insights.`);
+                }
+            }
+
             setStep("configure");
             toast.success("File uploaded successfully!");
         }
@@ -183,15 +199,21 @@ export default function RepurposeWizard() {
             // Generate random timestamps for video clips
             const startTime = i * 30; // Start every 30 seconds
             const endTime = startTime + 15; // 15 second clips
+            const hook = generateHook();
+
+            const body = contentType === "video"
+                ? `[Video File Content Placeholder for Short #${i}]`
+                : generateMockBlogContent(extractedText || `Title: ${selectedFile?.name}\nDescription: Generated piece for ${docConfig.style}`, i, docConfig.style);
 
             items.push({
                 id: `gen-${i}`,
                 title: contentType === "video"
-                    ? `Viral Short #${i}: ${generateHook()}`
-                    : `Engaging Post #${i}: ${generateHook()}`,
+                    ? `Viral Short #${i}: ${hook}`
+                    : `${docConfig.style.toUpperCase()} #${i}: ${hook}`,
                 description: contentType === "video"
                     ? "Optimized for retention with AI captions and dynamic cuts."
-                    : "Enhanced with viral hooks and clear call-to-action.",
+                    : (body.substring(0, 150) + "..."),
+                content: body, // Full content for preview and download
                 type: contentType === "video" ? "short" : "text",
                 status: "ready",
                 startTime: contentType === "video" ? startTime : undefined,
@@ -200,6 +222,25 @@ export default function RepurposeWizard() {
         }
         setGeneratedItems(items);
         toast.success("Content generated successfully!");
+    };
+
+    const generateMockBlogContent = (source: string, index: number, style: DocStyle) => {
+        const sentences = source.split(/[.!?]/).filter(s => s.trim().length > 10);
+        const title = sentences[0]?.trim() || "Engaging Analysis";
+
+        const introHooks = [
+            "The secret to mastering this topic is simpler than you think.",
+            "If you're not paying attention to this, you're falling behind.",
+            "Everybody talks about the obvious, but nobody mentions this.",
+            "Stop what you're doing and look at these key insights.",
+            "The landscape is changing, and here's how you can stay ahead."
+        ];
+
+        const content = sentences.length > 3
+            ? sentences.slice(Math.min(index + 1, sentences.length - 2), Math.min(index + 5, sentences.length)).join(". ")
+            : "This repurposed content provides a deep dive into the core themes of your document, optimized for maximum engagement and clarity on your chosen platform.";
+
+        return `# ${title}\n\n${introHooks[index % introHooks.length]}\n\n${content}\n\nThis ${style} was automatically generated and enhanced with AI hooks to ensure your message resonates with your audience.\n\n#${style} #contentstrategy #repurpose`;
     };
 
     const generateHook = () => {
@@ -229,8 +270,9 @@ export default function RepurposeWizard() {
                     document.body.removeChild(a);
                     toast.success("Download started!");
                 } else {
-                    // Download text
-                    const blob = new Blob([`${item.title}\n\n${item.description}`], { type: "text/plain" });
+                    // Download actual generated text content
+                    const downloadContent = item.content || `${item.title}\n\n${item.description}`;
+                    const blob = new Blob([downloadContent], { type: "text/plain" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
@@ -451,9 +493,14 @@ export default function RepurposeWizard() {
                                         })()}
                                     </div>
                                 ) : (
-                                    <div className="text-center">
-                                        <FileText className="w-16 h-16 text-pink-400 mx-auto mb-4" />
-                                        <p className="text-gray-400">Document Loaded</p>
+                                    <div className="w-full h-full bg-slate-950 rounded-lg p-6 border border-slate-800 overflow-auto max-h-[400px]">
+                                        <div className="flex items-center gap-2 mb-4 text-pink-400">
+                                            <FileText className="w-5 h-5" />
+                                            <span className="font-bold">Source Document</span>
+                                        </div>
+                                        <div className="text-gray-300 text-sm whitespace-pre-wrap font-mono leading-relaxed">
+                                            {extractedText || `No text preview available for ${selectedFile?.name}. AI will analyze the full content during generation.`}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -542,7 +589,7 @@ export default function RepurposeWizard() {
                                         {/* Long to Short Text */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <FilesIcon className="w-5 h-5 text-pink-400" />
+                                                <Files className="w-5 h-5 text-pink-400" />
                                                 Long to Content Pieces
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
@@ -776,20 +823,16 @@ export default function RepurposeWizard() {
                                             </>
                                         ) : (
                                             <div className="p-8 bg-white text-black h-full w-full flex flex-col relative overflow-hidden">
-                                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                                <div className="absolute top-0 right-0 p-4 opacity-5">
                                                     <FileText className="w-24 h-24" />
                                                 </div>
-                                                <h3 className="font-bold text-xl mb-4 relative z-10">{item.title}</h3>
-                                                <div className="space-y-3 relative z-10 opacity-60">
-                                                    <div className="h-2 bg-black rounded w-full" />
-                                                    <div className="h-2 bg-black rounded w-5/6" />
-                                                    <div className="h-2 bg-black rounded w-4/6" />
-                                                    <div className="h-2 bg-black rounded w-full" />
-                                                    <div className="h-2 bg-black rounded w-3/4" />
+                                                <h3 className="font-bold text-lg mb-4 relative z-10 border-b-2 border-slate-100 pb-2">{item.title}</h3>
+                                                <div className="relative z-10 text-[11px] text-gray-700 leading-relaxed whitespace-pre-wrap overflow-hidden line-clamp-[12]">
+                                                    {item.content || "Content preview unavailable..."}
                                                 </div>
                                                 <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
-                                                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">BLOG</span>
-                                                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">SEO</span>
+                                                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">{docConfig.style.toUpperCase()}</span>
+                                                    <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-1 rounded">SEO OPTIMIZED</span>
                                                 </div>
                                             </div>
                                         )}

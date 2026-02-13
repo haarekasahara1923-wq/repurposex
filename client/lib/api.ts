@@ -93,6 +93,7 @@ export interface ContentAsset {
     fileSize?: number;
     duration?: number;
     createdAt: string;
+    analysis?: AnalysisResult;
 }
 
 export interface AnalysisResult {
@@ -111,6 +112,7 @@ export interface AnalysisResult {
     }[];
     hooks?: string[];
     keyInsights?: string[];
+    transcript?: string;
 }
 
 export interface RepurposeJob {

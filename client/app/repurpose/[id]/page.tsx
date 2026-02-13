@@ -115,21 +115,32 @@ export default function RepurposePage() {
     const generateMockResults = () => {
         const items: GeneratedItem[] = [];
         const count = isVideo ? videoConfig.numShorts : docConfig.numPieces;
+        const transcript = content?.analysis?.transcript || "";
 
         for (let i = 1; i <= count; i++) {
             const hook = generateHook();
-            const body = isVideo
-                ? `[Video File Content Placeholder for Short #${i}]`
-                : `# ${hook}\n\n(Repurposed from: ${content?.title})\n\nHere is the generated content for piece #${i}. We have analyzed your uploaded document and extracted the key insights.\n\n**Context:**\n${content?.description || "No description provided."}\n\n**Key Takeaways:**\n1. Insight derived from your content.\n2. Actionable advice based on the document.\n3. Summary point for better engagement.\n\nFollow for more updates!`;
+            let body = "";
+
+            if (isVideo) {
+                body = `[Video File Content Placeholder for Short #${i}]`;
+            } else {
+                // Try to extract some snippets from transcript for more realism
+                const sentences = transcript.split(/[.!?]/).filter(s => s.trim().length > 15);
+                const snippet = sentences.length > 3
+                    ? sentences.slice(Math.min(i, sentences.length - 2), Math.min(i + 4, sentences.length)).join(". ")
+                    : "This piece explores the primary themes of your document, focusing on actionable insights and clear takeaways for your audience.";
+
+                body = `# ${hook}\n\n${snippet}\n\nThis content was automatically generated for your ${docConfig.style} using AI analysis of "${content?.title}".\n\n**Key Highlights:**\n- Core insight from section ${i}\n- Optimized for ${docConfig.style} format\n- Viral hook integration\n\n#${docConfig.style} #repurposed`;
+            }
 
             items.push({
                 id: `gen-${i}`,
                 title: isVideo
                     ? `Viral Short #${i}: ${hook}`
-                    : `Piece #${i}: ${hook}`,
+                    : `${docConfig.style.toUpperCase()} #${i}: ${hook}`,
                 description: isVideo
                     ? "Optimized for retention with AI captions and dynamic cuts."
-                    : "Enhanced with viral hooks and clear call-to-action.",
+                    : (body.substring(0, 120) + "..."),
                 type: isVideo ? "short" : "text",
                 status: "ready",
                 content: body
@@ -227,22 +238,36 @@ export default function RepurposePage() {
         }
 
         return (
-            <div className="w-full h-full min-h-[400px] bg-white text-black p-8 rounded-xl shadow-2xl overflow-hidden relative flex flex-col items-center">
-                <FileText className="w-16 h-16 text-gray-400 mb-4" />
-                <h3 className="font-bold text-xl mb-2 text-center border-b-2 border-gray-100 pb-2 w-full">{content.title}</h3>
-                <div className="w-full space-y-3 mt-4 opacity-50">
-                    <div className="h-2 bg-gray-200 rounded w-full" />
-                    <div className="h-2 bg-gray-200 rounded w-5/6" />
-                    <div className="h-2 bg-gray-200 rounded w-full" />
-                    <div className="h-2 bg-gray-200 rounded w-4/5" />
-                    <div className="h-2 bg-gray-200 rounded w-full" />
+            <div className="w-full h-full min-h-[400px] bg-white text-black p-8 rounded-xl shadow-2xl overflow-hidden relative flex flex-col">
+                <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-4 mb-4">
+                    <FileText className="w-8 h-8 text-purple-600" />
+                    <h3 className="font-bold text-xl">{content.title}</h3>
                 </div>
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg text-xs text-gray-600 w-full">
-                    <p className="font-bold mb-1">Description:</p>
-                    <p>{content.description || "No description provided."}</p>
+
+                <div className="flex-1 overflow-auto max-h-[250px] mb-4 custom-scrollbar">
+                    {content.analysis?.transcript ? (
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap font-serif leading-relaxed italic">
+                            "{content.analysis.transcript.substring(0, 1000)}..."
+                        </div>
+                    ) : (
+                        <div className="w-full space-y-3 opacity-30 mt-4">
+                            <div className="h-2 bg-gray-300 rounded w-full" />
+                            <div className="h-2 bg-gray-300 rounded w-5/6" />
+                            <div className="h-2 bg-gray-300 rounded w-full" />
+                            <div className="h-2 bg-gray-300 rounded w-4/5" />
+                            <div className="h-2 bg-gray-300 rounded w-full" />
+                            <p className="text-center text-[10px] text-gray-400 mt-2">No transcript available - AI will process on generation</p>
+                        </div>
+                    )}
                 </div>
-                <div className="absolute bottom-4 right-4 text-xs font-bold text-gray-300">
-                    PREVIEW
+
+                <div className="mt-auto p-4 bg-purple-50 rounded-lg text-xs text-purple-900 border border-purple-100">
+                    <p className="font-bold mb-1">Context / Description:</p>
+                    <p className="line-clamp-2">{content.description || "No description provided. We'll use the document content."}</p>
+                </div>
+
+                <div className="absolute top-2 right-4 text-[10px] font-bold text-purple-200">
+                    SOURCE DOCUMENT
                 </div>
             </div>
         );
