@@ -26,10 +26,10 @@ import {
     Instagram,
     Twitter,
     Linkedin,
-    Layout,
+    Layout as LayoutIcon,
     Smartphone,
     Globe,
-    Files
+    Files as FilesIconLucide
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
@@ -537,7 +537,7 @@ export default function RepurposeWizard() {
                                         {/* Reframing */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <Layout className="w-5 h-5 text-pink-400" />
+                                                <LayoutIcon className="w-5 h-5 text-pink-400" />
                                                 Reframe Video
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
@@ -589,7 +589,7 @@ export default function RepurposeWizard() {
                                         {/* Long to Short Text */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <Files className="w-5 h-5 text-pink-400" />
+                                                <FilesIconLucide className="w-5 h-5 text-pink-400" />
                                                 Long to Content Pieces
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
