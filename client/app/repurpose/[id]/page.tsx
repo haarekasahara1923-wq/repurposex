@@ -4,22 +4,22 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import {
-    Sparkles,
-    ArrowLeft,
-    Wand2,
-    Loader2,
-    Play,
-    Calendar,
-    Share2,
-    Download,
-    Scissors,
-    MonitorPlay,
-    Type,
-    Grid2x2,
-    Smartphone,
-    Twitter,
-    FileText,
-    Files as FilesIconLucide,
+    Sparkles as SparklesIcon,
+    ArrowLeft as ArrowLeftIcon,
+    Wand2 as WandIcon,
+    Loader2 as LoaderIcon,
+    Play as PlayIcon,
+    Calendar as CalendarIcon,
+    Share2 as ShareIcon,
+    Download as DownloadIcon,
+    Scissors as ScissorsIcon,
+    MonitorPlay as MonitorPlayIcon,
+    Type as TypeIcon,
+    Grid2x2 as Grid2x2Icon,
+    Smartphone as SmartphoneIcon,
+    Twitter as TwitterIcon,
+    FileText as FileTextIcon,
+    Files as FilesIcon,
     Layout as LayoutIcon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -112,18 +112,18 @@ export default function RepurposePage() {
         }
     };
 
-    const isVideo = content?.type?.includes("video") || content?.type === "mp4" || content?.type === "mov" || content?.type === "youtube";
+    const isContentVideo = !!content?.type && (content.type.includes("video") || content.type === "mp4" || content.type === "mov" || content.type === "youtube" || (content.fileUrl && (content.fileUrl.includes("youtube.com") || content.fileUrl.includes("youtu.be"))));
 
     const generateMockResults = () => {
         const items: GeneratedItem[] = [];
-        const count = isVideo ? videoConfig.numShorts : docConfig.numPieces;
+        const count = isContentVideo ? videoConfig.numShorts : docConfig.numPieces;
         const transcript = content?.analysis?.transcript || "";
 
         for (let i = 1; i <= count; i++) {
             const hook = generateHook();
             let body = "";
 
-            if (isVideo) {
+            if (isContentVideo) {
                 body = `[Video File Content Placeholder for Short #${i}]`;
             } else {
                 // Try to extract some snippets from transcript for more realism
@@ -137,13 +137,13 @@ export default function RepurposePage() {
 
             items.push({
                 id: `gen-${i}`,
-                title: isVideo
+                title: isContentVideo
                     ? `Viral Short #${i}: ${hook}`
                     : `${docConfig.style.toUpperCase()} #${i}: ${hook}`,
-                description: isVideo
+                description: isContentVideo
                     ? "Optimized for retention with AI captions and dynamic cuts."
                     : (body.substring(0, 120) + "..."),
-                type: isVideo ? "short" : "text",
+                type: isContentVideo ? "short" : "text",
                 status: "ready",
                 content: body
             });
@@ -198,14 +198,14 @@ export default function RepurposePage() {
     const renderPreview = () => {
         if (!content) return null;
 
-        if (isVideo) {
+        if (isContentVideo) {
             // Robust check for YouTube URLs
             const fileUrl = content.fileUrl || "";
             const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
             if (isYouTube) {
                 // Extract video ID (handling various formats: watch?v=, embed/, v/, shorts/, youtu.be/)
-                const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|)([^&?\/]+))/);
+                const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/||s\/)([^&?\/]+))/);
                 const videoId = videoIdMatch?.[1];
 
                 if (videoId) {
@@ -229,7 +229,7 @@ export default function RepurposePage() {
             return (
                 <div className="text-center">
                     <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                        <Play className="w-8 h-8 text-purple-400 ml-1" />
+                        <PlayIcon className="w-8 h-8 text-purple-400 ml-1" />
                     </div>
                     <p className="text-gray-400">Video Preview</p>
                     {fileUrl && !fileUrl.startsWith('http') && (
@@ -242,7 +242,7 @@ export default function RepurposePage() {
         return (
             <div className="w-full h-full min-h-[400px] bg-white text-black p-8 rounded-xl shadow-2xl overflow-hidden relative flex flex-col">
                 <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-4 mb-4">
-                    <FileText className="w-8 h-8 text-purple-600" />
+                    <FileTextIcon className="w-8 h-8 text-purple-600" />
                     <h3 className="font-bold text-xl">{content.title}</h3>
                 </div>
 
@@ -279,7 +279,7 @@ export default function RepurposePage() {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+                    <LoaderIcon className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
                     <p className="text-gray-400">Loading content...</p>
                 </div>
             </div>
@@ -298,11 +298,11 @@ export default function RepurposePage() {
                             href={`/content`}
                             className="flex items-center gap-2 text-gray-400 hover:text-white transition"
                         >
-                            <ArrowLeft className="w-5 h-5" />
+                            <ArrowLeftIcon className="w-5 h-5" />
                             Back to Library
                         </Link>
                         <div className="flex items-center gap-2">
-                            <Sparkles className="w-8 h-8 text-purple-400" />
+                            <SparklesIcon className="w-8 h-8 text-purple-400" />
                             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-200">
                                 RepurposeX
                             </span>
@@ -330,12 +330,12 @@ export default function RepurposePage() {
 
                             {/* Right: Settings */}
                             <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
-                                {isVideo ? (
+                                {isContentVideo ? (
                                     <div className="space-y-8">
                                         {/* Long to Shorts */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <Scissors className="w-5 h-5 text-purple-400" />
+                                                <ScissorsIcon className="w-5 h-5 text-purple-400" />
                                                 Long to Shorts
                                             </label>
                                             <div className="grid grid-cols-3 gap-3">
@@ -365,10 +365,10 @@ export default function RepurposePage() {
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
                                                 {[
-                                                    { id: "9:16", label: "9:16", icon: Smartphone },
-                                                    { id: "1:1", label: "1:1", icon: Grid2x2 },
-                                                    { id: "16:9", label: "16:9", icon: MonitorPlay },
-                                                    { id: "twitter", label: "X", icon: Twitter },
+                                                    { id: "9:16", label: "9:16", icon: SmartphoneIcon },
+                                                    { id: "1:1", label: "1:1", icon: Grid2x2Icon },
+                                                    { id: "16:9", label: "16:9", icon: MonitorPlayIcon },
+                                                    { id: "twitter", label: "X", icon: TwitterIcon },
                                                 ].map(ratio => (
                                                     <button
                                                         key={ratio.id}
@@ -389,7 +389,7 @@ export default function RepurposePage() {
                                         <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
-                                                    <Type className="w-5 h-5" />
+                                                    <TypeIcon className="w-5 h-5" />
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold">AI Captions</h4>
@@ -412,7 +412,7 @@ export default function RepurposePage() {
                                         {/* Long to Short Text */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <FilesIconLucide className="w-5 h-5 text-pink-400" />
+                                                <FilesIcon className="w-5 h-5 text-pink-400" />
                                                 Long to Content Pieces
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
@@ -434,7 +434,7 @@ export default function RepurposePage() {
                                         {/* Style Selection */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <Wand2 className="w-5 h-5 text-purple-400" />
+                                                <WandIcon className="w-5 h-5 text-purple-400" />
                                                 Content Style
                                             </label>
                                             <div className="grid grid-cols-2 gap-3">
@@ -457,7 +457,7 @@ export default function RepurposePage() {
                                         <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
-                                                    <Sparkles className="w-5 h-5" />
+                                                    <SparklesIcon className="w-5 h-5" />
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold">AI Hooks & Enhance</h4>
@@ -481,7 +481,7 @@ export default function RepurposePage() {
                                     onClick={startProcessing}
                                     className="w-full mt-8 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-purple-500/25 flex items-center justify-center gap-2"
                                 >
-                                    <Wand2 className="w-6 h-6" />
+                                    <WandIcon className="w-6 h-6" />
                                     Generate Magic
                                 </button>
                             </div>
@@ -513,7 +513,7 @@ export default function RepurposePage() {
                             <div>
                                 <h2 className="text-3xl font-bold mb-1">Your Repurposed Content</h2>
                                 <p className="text-gray-400">
-                                    Generated {generatedItems.length} {isVideo ? "Shorts" : "Pieces"} from "{content.title}".
+                                    Generated {generatedItems.length} {isContentVideo ? "Shorts" : "Pieces"} from "{content.title}".
                                 </p>
                             </div>
                             <div className="flex gap-3">
@@ -548,7 +548,7 @@ export default function RepurposePage() {
                                 className="w-5 h-5 rounded border-gray-600 bg-slate-800 text-purple-600 focus:ring-purple-500"
                             />
                             <label htmlFor="selectAll" className="text-sm font-medium text-gray-300 cursor-pointer select-none">
-                                Select All {isVideo ? "Shorts" : "Pieces"}
+                                Select All {isContentVideo ? "Shorts" : "Pieces"}
                             </label>
                         </div>
 
@@ -578,14 +578,14 @@ export default function RepurposePage() {
 
                                     {/* Preview Area */}
                                     <div className="aspect-[9/16] bg-black relative flex items-center justify-center">
-                                        {isVideo ? (
+                                        {isContentVideo ? (
                                             <>
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-6">
                                                     <h3 className="font-bold text-white text-lg mb-1 leading-tight">{item.title}</h3>
                                                     <p className="text-xs text-gray-300 line-clamp-2">{item.description}</p>
                                                 </div>
                                                 <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center cursor-pointer hover:bg-white/30 transition shadow-lg">
-                                                    <Play className="w-5 h-5 fill-white text-white ml-1" />
+                                                    <PlayIcon className="w-5 h-5 fill-white text-white ml-1" />
                                                 </div>
                                                 {/* Badges */}
                                                 <div className="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-lg">
@@ -595,7 +595,7 @@ export default function RepurposePage() {
                                         ) : (
                                             <div className="p-8 bg-white text-black h-full w-full flex flex-col relative overflow-hidden">
                                                 <div className="absolute top-0 right-0 p-4 opacity-10">
-                                                    <FileText className="w-24 h-24" />
+                                                    <FileTextIcon className="w-24 h-24" />
                                                 </div>
                                                 <h3 className="font-bold text-xl mb-4 relative z-10">{item.title}</h3>
                                                 <p className="text-xs mb-4 text-gray-500">{item.description}</p>
@@ -619,21 +619,21 @@ export default function RepurposePage() {
                                             onClick={() => handleAction(item, "schedule")}
                                             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
                                         >
-                                            <Calendar className="w-4 h-4 group-hover/btn:text-blue-400 transition-colors" />
+                                            <CalendarIcon className="w-4 h-4 group-hover/btn:text-blue-400 transition-colors" />
                                             <span className="text-[10px] uppercase font-bold">Schedule</span>
                                         </button>
                                         <button
                                             onClick={() => handleAction(item, "broadcast")}
                                             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
                                         >
-                                            <Share2 className="w-4 h-4 group-hover/btn:text-green-400 transition-colors" />
+                                            <ShareIcon className="w-4 h-4 group-hover/btn:text-green-400 transition-colors" />
                                             <span className="text-[10px] uppercase font-bold">Post</span>
                                         </button>
                                         <button
                                             onClick={() => handleAction(item, "download")}
                                             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
                                         >
-                                            <Download className="w-4 h-4 group-hover/btn:text-purple-400 transition-colors" />
+                                            <DownloadIcon className="w-4 h-4 group-hover/btn:text-purple-400 transition-colors" />
                                             <span className="text-[10px] uppercase font-bold">Download</span>
                                         </button>
                                     </div>
