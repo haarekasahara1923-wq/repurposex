@@ -15,13 +15,10 @@ import {
     Scissors,
     MonitorPlay,
     Type,
-    Layout as LayoutIcon,
+    Grid2X2,
     Smartphone,
     Twitter,
-    FileText,
-    CheckCircle,
-    Copy,
-    RefreshCw
+    FileText
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { contentAPI, ContentAsset } from "@/lib/api";
@@ -254,13 +251,13 @@ export default function RepurposePage() {
                                         {/* Reframing */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <LayoutIcon className="w-5 h-5 text-pink-400" />
+                                                <Grid2X2 className="w-5 h-5 text-pink-400" />
                                                 Reframe Video
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
                                                 {[
                                                     { id: "9:16", label: "9:16", icon: Smartphone },
-                                                    { id: "1:1", label: "1:1", icon: LayoutIcon },
+                                                    { id: "1:1", label: "1:1", icon: Grid2X2 },
                                                     { id: "16:9", label: "16:9", icon: MonitorPlay },
                                                     { id: "twitter", label: "X", icon: Twitter },
                                                 ].map(ratio => (
