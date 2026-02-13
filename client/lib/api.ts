@@ -178,17 +178,36 @@ export const contentAPI = {
                 }
             },
         });
-        return response.data;
+        const data = response.data;
+        // Map contentType to type
+        if (data && data.contentType && !data.type) {
+            data.type = data.contentType;
+        }
+        return data;
     },
 
     getAll: async (): Promise<ContentAsset[]> => {
         const response = await api.get('/api/v1/content');
-        return response.data;
+        if (Array.isArray(response.data)) {
+            return response.data.map((item: any) => ({
+                ...item,
+                type: item.contentType || item.type || 'unknown'
+            }));
+        }
+        return [];
     },
 
     getById: async (id: string): Promise<ContentAsset> => {
         const response = await api.get(`/api/v1/content/${id}`);
-        return response.data;
+        const data = response.data;
+        // Map contentType to type
+        if (data) {
+            return {
+                ...data,
+                type: data.contentType || data.type || 'unknown'
+            };
+        }
+        return data;
     },
 
     analyze: async (id: string): Promise<AnalysisResult> => {
