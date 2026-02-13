@@ -142,9 +142,17 @@ export default function UploadPage() {
             toast.success("Content uploaded successfully!");
 
             // Redirect to content library or analysis page
-            setTimeout(() => {
-                router.push(`/content/${response.id}`);
-            }, 1000);
+            if (response && response.id) {
+                setTimeout(() => {
+                    router.push(`/content/${response.id}`);
+                }, 1000);
+            } else {
+                console.error("Upload response missing ID:", response);
+                toast.error("Upload successful but ID missing. Please check library.");
+                setTimeout(() => {
+                    router.push("/content");
+                }, 1000);
+            }
         } catch (error: any) {
             console.error("Upload error:", error);
             const message = error.response?.data?.message || "Upload failed";

@@ -171,9 +171,6 @@ export const authAPI = {
 export const contentAPI = {
     upload: async (formData: FormData, onProgress?: (progress: number) => void) => {
         const response = await api.post('/api/v1/content/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
             onUploadProgress: (progressEvent) => {
                 if (progressEvent.total && onProgress) {
                     const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
