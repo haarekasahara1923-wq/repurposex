@@ -196,12 +196,31 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
         // In production, you'd handle audio/video transcription first
         let textToAnalyze = '';
 
-        if (content.contentType === 'video' || content.contentType === 'audio') {
-            // TODO: Implement actual transcription
-            textToAnalyze = 'Sample content for demonstration';
+        if (
+            content.contentType === 'video' ||
+            content.contentType === 'audio' ||
+            content.fileUrl.startsWith('http') ||
+            content.sourceUrl
+        ) {
+            // TODO: Implement actual transcription or scraping for URLs
+            // For now, providing a safe fallback for the MVP
+            textToAnalyze = `Content Analysis for: ${content.title}. 
+            
+            This appears to be video/audio content or an external URL. 
+            For this MVP/Demo version, we are simulating the transcription.
+            
+            Context based on metadata:
+            Title: ${content.title}
+            Description: ${content.description || 'No description provided'}
+            Tags: ${(content.tags || []).join(', ')}`;
         } else {
-            // Read text file
-            textToAnalyze = await fs.readFile(content.fileUrl, 'utf-8');
+            // Read text file from local filesystem
+            try {
+                textToAnalyze = await fs.readFile(content.fileUrl, 'utf-8');
+            } catch (err) {
+                console.warn(`Failed to read file at ${content.fileUrl}, using metadata instead.`);
+                textToAnalyze = `Title: ${content.title}\nDescription: ${content.description || ''}`;
+            }
         }
 
         // Select AI service
