@@ -118,6 +118,10 @@ export default function RepurposePage() {
 
         for (let i = 1; i <= count; i++) {
             const hook = generateHook();
+            const body = isVideo
+                ? `[Video File Content Placeholder for Short #${i}]`
+                : `# ${hook}\n\nHere is the generated content for post #${i}. It includes viral hooks, engaging body text, and a strong call to action.\n\nKey takeaways:\n- Point 1\n- Point 2\n- Point 3\n\nFollow for more!`;
+
             items.push({
                 id: `gen-${i}`,
                 title: isVideo
@@ -128,9 +132,7 @@ export default function RepurposePage() {
                     : "Enhanced with viral hooks and clear call-to-action.",
                 type: isVideo ? "short" : "text",
                 status: "ready",
-                content: isVideo
-                    ? `[Video File Content Placeholder for Short #${i}]`
-                    : `# ${hook}\n\nHere is the generated content for post #${i}. It includes viral hooks, engaging body text, and a strong call to action.\n\nKey takeaways:\n- Point 1\n- Point 2\n- Point 3\n\nFollow for more!`
+                content: body
             });
         }
         setGeneratedItems(items);
@@ -184,16 +186,18 @@ export default function RepurposePage() {
         if (!content) return null;
 
         if (isVideo) {
-            // Simple check for YouTube
+            // Robust check for YouTube URLs
             const fileUrl = content.fileUrl || "";
             const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
             if (isYouTube) {
-                // Extract video ID (basic regex)
-                const videoId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/)?.[1];
+                // Extract video ID (handling various formats: watch?v=, embed/, v/, shorts/, youtu.be/)
+                const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|)([^&?\/]+))/);
+                const videoId = videoIdMatch?.[1];
+
                 if (videoId) {
                     return (
-                        <div className="w-full h-full min-h-[300px] bg-black rounded-xl overflow-hidden">
+                        <div className="w-full h-full min-h-[300px] bg-black rounded-xl overflow-hidden relative">
                             <iframe
                                 width="100%"
                                 height="100%"
@@ -202,7 +206,7 @@ export default function RepurposePage() {
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
-                                className="w-full h-full"
+                                className="w-full h-full absolute inset-0"
                             />
                         </div>
                     );
@@ -226,6 +230,9 @@ export default function RepurposePage() {
             <div className="text-center">
                 <FileText className="w-16 h-16 text-pink-400 mx-auto mb-4" />
                 <p className="text-gray-400">Document Preview</p>
+                <div className="mt-4 p-4 bg-slate-800 rounded-lg text-left text-xs text-gray-300 max-w-sm mx-auto">
+                    <p className="font-mono">{content.description || "No description available."}</p>
+                </div>
             </div>
         );
     };
