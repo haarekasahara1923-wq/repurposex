@@ -34,7 +34,19 @@ interface GeneratedItem {
     description: string;
     type: "short" | "text";
     status: "ready" | "scheduled" | "published";
+    content?: string; // Content body for download
 }
+
+const generateHook = () => {
+    const hooks = [
+        "The Secret Truth About...",
+        "Stop Doing This Immediately!",
+        "How I Gained 10k Followers...",
+        "This Will Change Your Life...",
+        "Unpopular Opinion: AI is..."
+    ];
+    return hooks[Math.floor(Math.random() * hooks.length)];
+};
 
 export default function RepurposePage() {
     const router = useRouter();
@@ -80,7 +92,7 @@ export default function RepurposePage() {
     if (!mounted) return null;
 
     if (!isAuthenticated) {
-        router.push("/login"); // Or show login modal
+        router.push("/login");
         return null;
     }
 
@@ -98,34 +110,27 @@ export default function RepurposePage() {
         }
     };
 
-    const isVideo = content?.type?.includes("video") || content?.type === "mp4" || content?.type === "mov";
-
-    const generateHook = () => {
-        const hooks = [
-            "The Secret Truth About...",
-            "Stop Doing This Immediately!",
-            "How I Gained 10k Followers...",
-            "This Will Change Your Life...",
-            "Unpopular Opinion: AI is..."
-        ];
-        return hooks[Math.floor(Math.random() * hooks.length)];
-    };
+    const isVideo = content?.type?.includes("video") || content?.type === "mp4" || content?.type === "mov" || content?.type === "youtube";
 
     const generateMockResults = () => {
         const items: GeneratedItem[] = [];
         const count = isVideo ? videoConfig.numShorts : docConfig.numPieces;
 
         for (let i = 1; i <= count; i++) {
+            const hook = generateHook();
             items.push({
                 id: `gen-${i}`,
                 title: isVideo
-                    ? `Viral Short #${i}: ${generateHook()}`
-                    : `Engaging Post #${i}: ${generateHook()}`,
+                    ? `Viral Short #${i}: ${hook}`
+                    : `Engaging Post #${i}: ${hook}`,
                 description: isVideo
                     ? "Optimized for retention with AI captions and dynamic cuts."
                     : "Enhanced with viral hooks and clear call-to-action.",
                 type: isVideo ? "short" : "text",
-                status: "ready"
+                status: "ready",
+                content: isVideo
+                    ? `[Video File Content Placeholder for Short #${i}]`
+                    : `# ${hook}\n\nHere is the generated content for post #${i}. It includes viral hooks, engaging body text, and a strong call to action.\n\nKey takeaways:\n- Point 1\n- Point 2\n- Point 3\n\nFollow for more!`
             });
         }
         setGeneratedItems(items);
@@ -136,7 +141,6 @@ export default function RepurposePage() {
         setStep("processing");
         setProcessingProgress(0);
 
-        // Simulate AI Processing
         const interval = setInterval(() => {
             setProcessingProgress((prev) => {
                 if (prev >= 100) {
@@ -145,13 +149,84 @@ export default function RepurposePage() {
                     setStep("results");
                     return 100;
                 }
-                return prev + 5; // Faster simulation for demo
+                return prev + 5;
             });
         }, 100);
     };
 
-    const handleAction = (id: string, action: string) => {
-        toast.success(`${action} triggered for item`);
+    const handleDownload = (item: GeneratedItem) => {
+        if (!item.content) {
+            toast.error("No content to download");
+            return;
+        }
+
+        const blob = new Blob([item.content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Download started");
+    };
+
+    const handleAction = (item: GeneratedItem, action: string) => {
+        if (action === "download") {
+            handleDownload(item);
+        } else {
+            toast.success(`${action} triggered for item`);
+        }
+    };
+
+    const renderPreview = () => {
+        if (!content) return null;
+
+        if (isVideo) {
+            // Simple check for YouTube
+            const isYouTube = content.fileUrl?.includes("youtube.com") || content.fileUrl?.includes("youtu.be");
+
+            if (isYouTube) {
+                // Extract video ID (basic regex)
+                const videoId = content.fileUrl.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/)?.[1];
+                if (videoId) {
+                    return (
+                        <div className="w-full h-full min-h-[300px] bg-black rounded-xl overflow-hidden">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src={`https://www.youtube.com/embed/${videoId}`}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full"
+                            />
+                        </div>
+                    );
+                }
+            }
+
+            return (
+                <div className="text-center">
+                    <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <Play className="w-8 h-8 text-purple-400 ml-1" />
+                    </div>
+                    <p className="text-gray-400">Video Preview</p>
+                    {content.fileUrl && !content.fileUrl.startsWith('http') && (
+                        <p className="text-xs text-gray-500 mt-2">Local file: {content.fileUrl}</p>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <div className="text-center">
+                <FileText className="w-16 h-16 text-pink-400 mx-auto mb-4" />
+                <p className="text-gray-400">Document Preview</p>
+            </div>
+        );
     };
 
     if (loading) {
@@ -186,7 +261,7 @@ export default function RepurposePage() {
                                 RepurposeX
                             </span>
                         </div>
-                        <div className="w-24" /> {/* Spacer */}
+                        <div className="w-24" />
                     </div>
                 </div>
             </nav>
@@ -202,21 +277,9 @@ export default function RepurposePage() {
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-8">
-                            {/* Left: Input Preview (Mock) */}
+                            {/* Left: Input Preview */}
                             <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex items-center justify-center min-h-[300px]">
-                                {isVideo ? (
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                                            <Play className="w-8 h-8 text-purple-400 ml-1" />
-                                        </div>
-                                        <p className="text-gray-400">Video Preview</p>
-                                    </div>
-                                ) : (
-                                    <div className="text-center">
-                                        <FileText className="w-16 h-16 text-pink-400 mx-auto mb-4" />
-                                        <p className="text-gray-400">Document Preview</p>
-                                    </div>
-                                )}
+                                {renderPreview()}
                             </div>
 
                             {/* Right: Settings */}
@@ -428,7 +491,7 @@ export default function RepurposePage() {
                             <input
                                 type="checkbox"
                                 id="selectAll"
-                                checked={selectedItems.size === generatedItems.length}
+                                checked={generatedItems.length > 0 && selectedItems.size === generatedItems.length}
                                 onChange={(e) => {
                                     if (e.target.checked) {
                                         setSelectedItems(new Set(generatedItems.map(i => i.id)));
@@ -489,13 +552,13 @@ export default function RepurposePage() {
                                                     <FileText className="w-24 h-24" />
                                                 </div>
                                                 <h3 className="font-bold text-xl mb-4 relative z-10">{item.title}</h3>
-                                                <div className="space-y-3 relative z-10 opacity-60">
-                                                    <div className="h-2 bg-black rounded w-full" />
-                                                    <div className="h-2 bg-black rounded w-5/6" />
-                                                    <div className="h-2 bg-black rounded w-4/6" />
-                                                    <div className="h-2 bg-black rounded w-full" />
-                                                    <div className="h-2 bg-black rounded w-3/4" />
+                                                <p className="text-xs mb-4 text-gray-500">{item.description}</p>
+
+                                                {/* Mock Body Preview using content snippet */}
+                                                <div className="text-[10px] text-gray-500 line-clamp-6 whitespace-pre-wrap">
+                                                    {item.content || "Content preview unavailable..."}
                                                 </div>
+
                                                 <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
                                                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">BLOG</span>
                                                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">SEO</span>
@@ -507,21 +570,21 @@ export default function RepurposePage() {
                                     {/* Action Buttons */}
                                     <div className="p-4 grid grid-cols-3 gap-2 bg-slate-900 border-t border-slate-800">
                                         <button
-                                            onClick={() => handleAction(item.id, "schedule")}
+                                            onClick={() => handleAction(item, "schedule")}
                                             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
                                         >
                                             <Calendar className="w-4 h-4 group-hover/btn:text-blue-400 transition-colors" />
                                             <span className="text-[10px] uppercase font-bold">Schedule</span>
                                         </button>
                                         <button
-                                            onClick={() => handleAction(item.id, "broadcast")}
+                                            onClick={() => handleAction(item, "broadcast")}
                                             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
                                         >
                                             <Share2 className="w-4 h-4 group-hover/btn:text-green-400 transition-colors" />
                                             <span className="text-[10px] uppercase font-bold">Post</span>
                                         </button>
                                         <button
-                                            onClick={() => handleAction(item.id, "download")}
+                                            onClick={() => handleAction(item, "download")}
                                             className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
                                         >
                                             <Download className="w-4 h-4 group-hover/btn:text-purple-400 transition-colors" />
