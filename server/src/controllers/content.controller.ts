@@ -26,13 +26,16 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
         }
 
         // Create content asset record
+        const filePath = req.file ? req.file.path.replace(/\\/g, '/') : url;
+        const normalizedFileUrl = filePath && !filePath.startsWith('http') && !filePath.startsWith('/') ? `/${filePath}` : filePath;
+
         const content = await prisma.contentAsset.create({
             data: {
                 userId: req.user.id,
                 title: title || (req.file ? req.file.originalname : 'URL Import'),
                 description,
                 contentType: contentType || 'unknown',
-                fileUrl: req.file ? req.file.path : url,
+                fileUrl: normalizedFileUrl,
                 fileSize: req.file ? BigInt(req.file.size) : 0n,
                 mimeType: req.file ? req.file.mimetype : 'text/url',
                 sourceUrl: url || null,

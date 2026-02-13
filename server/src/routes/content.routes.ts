@@ -10,7 +10,7 @@ import {
 
 const router = Router();
 const upload = multer({
-    dest: '/tmp/uploads/',
+    dest: 'uploads/',
     limits: { fileSize: 2 * 1024 * 1024 * 1024 } // 2GB
 });
 
