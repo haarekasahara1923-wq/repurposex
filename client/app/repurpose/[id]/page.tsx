@@ -15,7 +15,7 @@ import {
     Scissors as ScissorsIcon,
     MonitorPlay as MonitorPlayIcon,
     Type as TypeIcon,
-    Grid2x2 as Grid2x2Icon,
+    Grid2X2 as Grid2X2Icon,
     Smartphone as SmartphoneIcon,
     Twitter as TwitterIcon,
     FileText as FileTextIcon,
@@ -54,10 +54,13 @@ export default function RepurposePage() {
     const router = useRouter();
     const params = useParams();
     const { isAuthenticated } = useAuth();
-    const id = params.id as string;
+
+    // Ensure params is handled safely - in Next 15/16 this might be a promise or object
+    const id = params?.id as string;
 
     const [content, setContent] = useState<ContentAsset | null>(null);
     const [loading, setLoading] = useState(true);
+
     const [mounted, setMounted] = useState(false);
 
     // Wizard State
@@ -99,9 +102,15 @@ export default function RepurposePage() {
     }
 
     const loadContent = async () => {
+        if (!id) return;
         try {
             setLoading(true);
             const data = await contentAPI.getById(id);
+            if (!data) {
+                toast.error("Content not found");
+                router.push("/content");
+                return;
+            }
             setContent(data);
         } catch (error) {
             console.error("Failed to load content:", error);
@@ -366,7 +375,7 @@ export default function RepurposePage() {
                                             <div className="grid grid-cols-4 gap-3">
                                                 {[
                                                     { id: "9:16", label: "9:16", icon: SmartphoneIcon },
-                                                    { id: "1:1", label: "1:1", icon: Grid2x2Icon },
+                                                    { id: "1:1", label: "1:1", icon: Grid2X2Icon },
                                                     { id: "16:9", label: "16:9", icon: MonitorPlayIcon },
                                                     { id: "twitter", label: "X", icon: TwitterIcon },
                                                 ].map(ratio => (
