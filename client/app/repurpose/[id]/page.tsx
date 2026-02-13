@@ -53,6 +53,8 @@ interface GeneratedItem {
     type: "short" | "text";
     status: "ready" | "scheduled" | "published";
     content?: string;
+    startTime?: number;
+    endTime?: number;
 }
 
 const HOOKS = [
@@ -179,7 +181,9 @@ export default function RepurposePage() {
                     : (body.substring(0, 100) + "..."),
                 type: isContentVideo ? "short" : "text",
                 status: "ready",
-                content: body
+                content: body,
+                startTime: i * 15,
+                endTime: i * 15 + 10
             });
         }
         setGeneratedItems(items);
@@ -224,7 +228,7 @@ export default function RepurposePage() {
     const renderPreview = () => {
         if (!content) return null;
 
-        const fileUrl = content.fileUrl || "";
+        const fileUrl = content.fileUrl || content.filePath || "";
         const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
         if (isContentVideo || isYouTube) {
@@ -251,14 +255,29 @@ export default function RepurposePage() {
             }
 
             // Real video tag for direct uploads
-            if (fileUrl && (fileUrl.startsWith("http") || fileUrl.startsWith("/api") || fileUrl.startsWith("blob:"))) {
+            if (fileUrl && (fileUrl.startsWith("http") || fileUrl.startsWith("/api") || fileUrl.startsWith("blob:") || fileUrl.startsWith("/uploads"))) {
+                // Ensure URL is absolute for the video tag if it's a relative back-end path
+                const absoluteUrl = fileUrl.startsWith("/") && !fileUrl.startsWith("/api") ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${fileUrl}` : fileUrl;
+
                 return (
                     <div className="w-full aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
                         <video
-                            src={fileUrl}
+                            src={absoluteUrl}
                             controls
                             className="w-full h-full object-contain"
                             poster={content.analysis?.thumbnailUrl}
+                            onError={(e) => {
+                                console.error("Video element failed to load:", absoluteUrl);
+                                // Fallback to placeholder UI on error
+                                const target = e.currentTarget;
+                                target.classList.add('hidden');
+                                if (target.parentElement) {
+                                    const fallback = document.createElement('div');
+                                    fallback.className = "flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center";
+                                    fallback.innerHTML = `<svg class="w-12 h-12 mb-4 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p class="text-xs">Media unavailable on this device.</p>`;
+                                    target.parentElement.appendChild(fallback);
+                                }
+                            }}
                         />
                     </div>
                 );
@@ -266,7 +285,7 @@ export default function RepurposePage() {
 
             // Placeholder with better UI
             return (
-                <div className="w-full aspect-video bg-slate-900 rounded-xl flex flex-col items-center justify-center border border-slate-800">
+                <div className="w-full aspect-video bg-slate-900 rounded-xl flex flex-col items-center justify-center border border-white/5">
                     <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-4">
                         <Play className="w-8 h-8 text-purple-400 fill-purple-400" />
                     </div>
@@ -302,22 +321,19 @@ export default function RepurposePage() {
                         </div>
                     )}
                 </div>
-
-                <div className="mt-auto p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 mb-1">DESCRIPTION</p>
-                    <p className="text-sm text-slate-700 line-clamp-2">{content.description || "No description provided."}</p>
-                </div>
             </div>
         );
     };
 
-    if (!mounted) return null;
-
-    if (loading) {
+    if (!mounted || loading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
-                <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
-                <p className="text-gray-400 animate-pulse">Loading Magic...</p>
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-purple-600/20 rounded-full" />
+                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin absolute top-0" />
+                    <Sparkles className="w-6 h-6 text-purple-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                </div>
+                <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-[10px] animate-pulse">Initializing Wizard</p>
             </div>
         );
     }
@@ -325,28 +341,33 @@ export default function RepurposePage() {
     if (!content) return null;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white font-outfit pb-20">
-            {/* Nav */}
-            <nav className="bg-slate-900/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-                    <Link href="/content" className="flex items-center gap-2 text-gray-400 hover:text-white transition">
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Library</span>
-                    </Link>
-                    <div className="flex items-center gap-3">
-                        <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-                            <Sparkles className="w-5 h-5 text-white" />
+        <div className="min-h-screen bg-slate-950 text-white font-outfit selection:bg-purple-500/30">
+            {/* Header */}
+            <nav className="bg-black/40 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="flex justify-between items-center h-20">
+                        <div className="flex items-center gap-6">
+                            <Link href="/content" className="p-2 hover:bg-white/5 rounded-full transition group">
+                                <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                            </Link>
+                            <div className="h-6 w-px bg-white/10" />
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="w-6 h-6 text-purple-400" />
+                                <span className="font-black text-lg tracking-tight uppercase">Repurpose Wizard</span>
+                            </div>
                         </div>
-                        <span className="font-bold text-xl tracking-tight">RepurposeX</span>
+
+                        <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-black bg-white/5 px-3 py-1 rounded-full text-gray-500 uppercase tracking-widest">Alpha v1.0</span>
+                        </div>
                     </div>
-                    <div className="w-20" />
                 </div>
             </nav>
 
-            <main className="max-w-6xl mx-auto px-4 py-10">
+            <main className="max-w-7xl mx-auto px-6 py-12">
                 {step === "configure" && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <header className="text-center mb-12">
+                    <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+                        <header className="mb-12">
                             <h1 className="text-4xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                                 Magic Repurposer
                             </h1>
@@ -557,6 +578,43 @@ export default function RepurposePage() {
                                     <div className="aspect-[9/16] relative flex items-center justify-center overflow-hidden">
                                         {isContentVideo ? (
                                             <>
+                                                {/* Parent Video Clip Preview */}
+                                                {(content.fileUrl || content.filePath) && (
+                                                    (() => {
+                                                        const fileUrl = content.fileUrl || content.filePath || "";
+                                                        const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
+                                                        const absoluteUrl = fileUrl.startsWith("/") && !fileUrl.startsWith("/api") ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${fileUrl}` : fileUrl;
+
+                                                        if (isYouTube) {
+                                                            const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/)([^&?\/]+))/)?.[1];
+                                                            return ytId ? (
+                                                                <div className="absolute inset-0 pointer-events-none">
+                                                                    <div className="w-[300%] h-full absolute left-1/2 -translate-x-1/2">
+                                                                        <iframe
+                                                                            width="100%"
+                                                                            height="100%"
+                                                                            src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=0&mute=1&autoplay=1&loop=1&playlist=${ytId}`}
+                                                                            frameBorder="0"
+                                                                            className="w-full h-full"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ) : null;
+                                                        }
+
+                                                        return (
+                                                            <video
+                                                                src={`${absoluteUrl}#t=${item.startTime},${item.endTime}`}
+                                                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition duration-1000"
+                                                                muted
+                                                                autoPlay
+                                                                loop
+                                                                onMouseOver={e => e.currentTarget.play()}
+                                                            />
+                                                        );
+                                                    })()
+                                                )}
+
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-[1]" />
                                                 <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center z-[2] group-hover:scale-110 transition duration-500">
                                                     <Play className="w-6 h-6 text-white fill-white ml-0.5" />
