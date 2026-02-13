@@ -543,7 +543,7 @@ export default function RepurposeWizard() {
                                             <div className="grid grid-cols-4 gap-3">
                                                 {[
                                                     { id: "9:16", label: "9:16", icon: Smartphone },
-                                                    { id: "1:1", label: "1:1", icon: Layout },
+                                                    { id: "1:1", label: "1:1", icon: LayoutIcon },
                                                     { id: "16:9", label: "16:9", icon: MonitorPlay },
                                                     { id: "twitter", label: "X", icon: Twitter },
                                                 ].map(ratio => (
