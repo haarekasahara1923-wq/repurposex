@@ -15,7 +15,7 @@ import {
     Scissors,
     MonitorPlay,
     Type,
-    Layout,
+    Layout as LayoutIcon,
     Smartphone,
     Twitter,
     FileText,
@@ -103,22 +103,15 @@ export default function RepurposePage() {
 
     const isVideo = content?.type?.includes("video") || content?.type === "mp4" || content?.type === "mov";
 
-    const startProcessing = () => {
-        setStep("processing");
-        setProcessingProgress(0);
-
-        // Simulate AI Processing
-        const interval = setInterval(() => {
-            setProcessingProgress((prev) => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    generateMockResults();
-                    setStep("results");
-                    return 100;
-                }
-                return prev + 5; // Faster simulation for demo
-            });
-        }, 100);
+    const generateHook = () => {
+        const hooks = [
+            "The Secret Truth About...",
+            "Stop Doing This Immediately!",
+            "How I Gained 10k Followers...",
+            "This Will Change Your Life...",
+            "Unpopular Opinion: AI is..."
+        ];
+        return hooks[Math.floor(Math.random() * hooks.length)];
     };
 
     const generateMockResults = () => {
@@ -142,15 +135,22 @@ export default function RepurposePage() {
         toast.success("Content generated successfully!");
     };
 
-    const generateHook = () => {
-        const hooks = [
-            "The Secret Truth About...",
-            "Stop Doing This Immediately!",
-            "How I Gained 10k Followers...",
-            "This Will Change Your Life...",
-            "Unpopular Opinion: AI is..."
-        ];
-        return hooks[Math.floor(Math.random() * hooks.length)];
+    const startProcessing = () => {
+        setStep("processing");
+        setProcessingProgress(0);
+
+        // Simulate AI Processing
+        const interval = setInterval(() => {
+            setProcessingProgress((prev) => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    generateMockResults();
+                    setStep("results");
+                    return 100;
+                }
+                return prev + 5; // Faster simulation for demo
+            });
+        }, 100);
     };
 
     const handleAction = (id: string, action: string) => {
@@ -238,8 +238,8 @@ export default function RepurposePage() {
                                                         key={num}
                                                         onClick={() => setVideoConfig({ ...videoConfig, numShorts: num as 3 | 6 | 12 })}
                                                         className={`py-3 px-4 rounded-xl border font-bold transition ${videoConfig.numShorts === num
-                                                                ? "bg-purple-600 border-purple-500 text-white"
-                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-purple-500/50"
+                                                            ? "bg-purple-600 border-purple-500 text-white"
+                                                            : "bg-slate-950 border-slate-800 text-gray-400 hover:border-purple-500/50"
                                                             }`}
                                                     >
                                                         {num} Shorts
@@ -254,13 +254,13 @@ export default function RepurposePage() {
                                         {/* Reframing */}
                                         <div>
                                             <label className="flex items-center gap-2 text-lg font-bold mb-4 text-white">
-                                                <Layout className="w-5 h-5 text-pink-400" />
+                                                <LayoutIcon className="w-5 h-5 text-pink-400" />
                                                 Reframe Video
                                             </label>
                                             <div className="grid grid-cols-4 gap-3">
                                                 {[
                                                     { id: "9:16", label: "9:16", icon: Smartphone },
-                                                    { id: "1:1", label: "1:1", icon: Layout },
+                                                    { id: "1:1", label: "1:1", icon: LayoutIcon },
                                                     { id: "16:9", label: "16:9", icon: MonitorPlay },
                                                     { id: "twitter", label: "X", icon: Twitter },
                                                 ].map(ratio => (
@@ -268,8 +268,8 @@ export default function RepurposePage() {
                                                         key={ratio.id}
                                                         onClick={() => setVideoConfig({ ...videoConfig, aspectRatio: ratio.id as AspectRatio })}
                                                         className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border transition ${videoConfig.aspectRatio === ratio.id
-                                                                ? "bg-pink-600/20 border-pink-500 text-white"
-                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-pink-500/50"
+                                                            ? "bg-pink-600/20 border-pink-500 text-white"
+                                                            : "bg-slate-950 border-slate-800 text-gray-400 hover:border-pink-500/50"
                                                             }`}
                                                     >
                                                         <ratio.icon className="w-4 h-4" />
@@ -315,8 +315,8 @@ export default function RepurposePage() {
                                                         key={num}
                                                         onClick={() => setDocConfig({ ...docConfig, numPieces: num as 2 | 4 | 6 | 8 })}
                                                         className={`py-3 px-4 rounded-xl border font-bold transition ${docConfig.numPieces === num
-                                                                ? "bg-pink-600 border-pink-500 text-white"
-                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-pink-500/50"
+                                                            ? "bg-pink-600 border-pink-500 text-white"
+                                                            : "bg-slate-950 border-slate-800 text-gray-400 hover:border-pink-500/50"
                                                             }`}
                                                     >
                                                         {num}x
@@ -337,8 +337,8 @@ export default function RepurposePage() {
                                                         key={style}
                                                         onClick={() => setDocConfig({ ...docConfig, style: style as DocStyle })}
                                                         className={`py-3 px-4 rounded-xl border font-bold capitalize transition ${docConfig.style === style
-                                                                ? "bg-purple-600/20 border-purple-500 text-white"
-                                                                : "bg-slate-950 border-slate-800 text-gray-400 hover:border-purple-500/50"
+                                                            ? "bg-purple-600/20 border-purple-500 text-white"
+                                                            : "bg-slate-950 border-slate-800 text-gray-400 hover:border-purple-500/50"
                                                             }`}
                                                     >
                                                         {style}
@@ -451,8 +451,8 @@ export default function RepurposePage() {
                                 <div
                                     key={item.id}
                                     className={`relative bg-slate-900 border rounded-2xl overflow-hidden group transition-all duration-300 ${selectedItems.has(item.id)
-                                            ? "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
-                                            : "border-slate-800 hover:border-purple-500/50"
+                                        ? "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+                                        : "border-slate-800 hover:border-purple-500/50"
                                         }`}
                                 >
                                     {/* Selection Checkbox */}
