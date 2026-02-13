@@ -604,7 +604,7 @@ export default function RepurposePage() {
                                         ) : (
                                             <div className="p-8 bg-white text-black h-full w-full flex flex-col relative overflow-hidden">
                                                 <div className="absolute top-0 right-0 p-4 opacity-10">
-                                                    <FileTextIcon className="w-24 h-24" />
+                                                    <FileText className="w-24 h-24" />
                                                 </div>
                                                 <h3 className="font-bold text-xl mb-4 relative z-10">{item.title}</h3>
                                                 <p className="text-xs mb-4 text-gray-500">{item.description}</p>
