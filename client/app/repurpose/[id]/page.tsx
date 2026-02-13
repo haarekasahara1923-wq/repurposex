@@ -120,13 +120,13 @@ export default function RepurposePage() {
             const hook = generateHook();
             const body = isVideo
                 ? `[Video File Content Placeholder for Short #${i}]`
-                : `# ${hook}\n\nHere is the generated content for post #${i}. It includes viral hooks, engaging body text, and a strong call to action.\n\nKey takeaways:\n- Point 1\n- Point 2\n- Point 3\n\nFollow for more!`;
+                : `# ${hook}\n\n(Repurposed from: ${content?.title})\n\nHere is the generated content for piece #${i}. We have analyzed your uploaded document and extracted the key insights.\n\n**Context:**\n${content?.description || "No description provided."}\n\n**Key Takeaways:**\n1. Insight derived from your content.\n2. Actionable advice based on the document.\n3. Summary point for better engagement.\n\nFollow for more updates!`;
 
             items.push({
                 id: `gen-${i}`,
                 title: isVideo
                     ? `Viral Short #${i}: ${hook}`
-                    : `Engaging Post #${i}: ${hook}`,
+                    : `Piece #${i}: ${hook}`,
                 description: isVideo
                     ? "Optimized for retention with AI captions and dynamic cuts."
                     : "Enhanced with viral hooks and clear call-to-action.",
@@ -227,11 +227,22 @@ export default function RepurposePage() {
         }
 
         return (
-            <div className="text-center">
-                <FileText className="w-16 h-16 text-pink-400 mx-auto mb-4" />
-                <p className="text-gray-400">Document Preview</p>
-                <div className="mt-4 p-4 bg-slate-800 rounded-lg text-left text-xs text-gray-300 max-w-sm mx-auto">
-                    <p className="font-mono">{content.description || "No description available."}</p>
+            <div className="w-full h-full min-h-[400px] bg-white text-black p-8 rounded-xl shadow-2xl overflow-hidden relative flex flex-col items-center">
+                <FileText className="w-16 h-16 text-gray-400 mb-4" />
+                <h3 className="font-bold text-xl mb-2 text-center border-b-2 border-gray-100 pb-2 w-full">{content.title}</h3>
+                <div className="w-full space-y-3 mt-4 opacity-50">
+                    <div className="h-2 bg-gray-200 rounded w-full" />
+                    <div className="h-2 bg-gray-200 rounded w-5/6" />
+                    <div className="h-2 bg-gray-200 rounded w-full" />
+                    <div className="h-2 bg-gray-200 rounded w-4/5" />
+                    <div className="h-2 bg-gray-200 rounded w-full" />
+                </div>
+                <div className="mt-8 p-4 bg-gray-50 rounded-lg text-xs text-gray-600 w-full">
+                    <p className="font-bold mb-1">Description:</p>
+                    <p>{content.description || "No description provided."}</p>
+                </div>
+                <div className="absolute bottom-4 right-4 text-xs font-bold text-gray-300">
+                    PREVIEW
                 </div>
             </div>
         );
