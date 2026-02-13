@@ -113,6 +113,7 @@ export interface AnalysisResult {
     hooks?: string[];
     keyInsights?: string[];
     transcript?: string;
+    thumbnailUrl?: string;
 }
 
 export interface RepurposeJob {
