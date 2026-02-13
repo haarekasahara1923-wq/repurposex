@@ -185,11 +185,12 @@ export default function RepurposePage() {
 
         if (isVideo) {
             // Simple check for YouTube
-            const isYouTube = content.fileUrl?.includes("youtube.com") || content.fileUrl?.includes("youtu.be");
+            const fileUrl = content.fileUrl || "";
+            const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
             if (isYouTube) {
                 // Extract video ID (basic regex)
-                const videoId = content.fileUrl.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/)?.[1];
+                const videoId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&]+)/)?.[1];
                 if (videoId) {
                     return (
                         <div className="w-full h-full min-h-[300px] bg-black rounded-xl overflow-hidden">
@@ -214,8 +215,8 @@ export default function RepurposePage() {
                         <Play className="w-8 h-8 text-purple-400 ml-1" />
                     </div>
                     <p className="text-gray-400">Video Preview</p>
-                    {content.fileUrl && !content.fileUrl.startsWith('http') && (
-                        <p className="text-xs text-gray-500 mt-2">Local file: {content.fileUrl}</p>
+                    {fileUrl && !fileUrl.startsWith('http') && (
+                        <p className="text-xs text-gray-500 mt-2">Local file: {fileUrl}</p>
                     )}
                 </div>
             );
