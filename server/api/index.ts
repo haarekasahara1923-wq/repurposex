@@ -1,6 +1,12 @@
-import app from '../src/index';
+console.log('[VERCEL ENTRY] Loading application...');
 
-// Export the Express app directly as a Vercel serverless function
-console.log('[VERCEL ENTRY] Serverless function invoked at:', new Date().toISOString());
+let app: any;
+try {
+    app = require('../src/index').default;
+    console.log('[VERCEL ENTRY] Application loaded successfully');
+} catch (err) {
+    console.error('[VERCEL ENTRY] FATAL ERROR DURING LOAD:', err);
+    throw err;
+}
 
 export default app;

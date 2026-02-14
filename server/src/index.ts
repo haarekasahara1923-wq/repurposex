@@ -131,6 +131,12 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // API routes
 app.get('/api/v1/ping', (req, res) => res.json({ status: 'v1 pong' }));
+app.get('/', (req, res) => res.json({
+    message: 'RepurposeX API is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+}));
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/content', contentRoutes);
@@ -150,6 +156,15 @@ app.use((req: Request, res: Response) => {
             message: `Route not found: ${req.method} ${req.url}`
         }
     });
+});
+
+// Process-level error handling for Vercel debugging
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL] Uncaught Exception:', err);
 });
 
 // Error handler
