@@ -262,21 +262,47 @@ export default function RepurposeWizard() {
         return hooks[Math.floor(Math.random() * hooks.length)];
     };
 
-    const handleAction = (id: string, action: "schedule" | "broadcast" | "download") => {
+    const handleAction = async (id: string, action: "schedule" | "broadcast" | "download") => {
         const item = generatedItems.find(i => i.id === id);
         if (!item) return;
 
         if (action === "download") {
             try {
                 if (contentType === "video" && videoUrl) {
-                    // Download video clip (simulated by downloading original)
-                    const a = document.createElement("a");
-                    a.href = videoUrl;
-                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    toast.success("Download started!");
+                    toast.loading("Preparing download...", { id: "download" });
+
+                    try {
+                        // Fetch the file as a blob to force download and avoid redirects
+                        const response = await fetch(videoUrl);
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+
+                        const a = document.createElement("a");
+                        a.href = blobUrl;
+                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // Cleanup
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(blobUrl);
+                            document.body.removeChild(a);
+                        }, 100);
+
+                        toast.success("Download started!", { id: "download" });
+                    } catch (fetchError) {
+                        console.error("Fetch download failed, falling back to direct link:", fetchError);
+                        // Fallback to direct link if fetch fails (e.g. CORS)
+                        const a = document.createElement("a");
+                        a.href = videoUrl;
+                        a.target = "_blank";
+                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        toast.success("Download initiated!", { id: "download" });
+                    }
                 } else {
                     // Download actual generated text content
                     const downloadContent = item.content || `${item.title}\n\n${item.description}`;
@@ -293,7 +319,7 @@ export default function RepurposeWizard() {
                 }
             } catch (error) {
                 console.error("Download failed:", error);
-                toast.error("Failed to download file.");
+                toast.error("Failed to download file.", { id: "download" });
             }
         } else if (action === "schedule") {
             // Navigate to schedule page with data
@@ -838,7 +864,8 @@ export default function RepurposeWizard() {
                                                 </div>
 
                                                 {/* Badges */}
-                                                <div className={`absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
+                                                {/* Play Button Overlay - disappears when playing, reappears on hover */}
+                                                <div className={`absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100' : 'opacity-100 scale-100'}`}>
                                                     <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
                                                         <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                                                     </div>

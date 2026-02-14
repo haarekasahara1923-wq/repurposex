@@ -322,7 +322,7 @@ export default function RepurposePage() {
         }
     };
 
-    const handleAction = (item: GeneratedItem, action: string) => {
+    const handleAction = async (item: GeneratedItem, action: string) => {
         if (action === "download") {
             try {
                 if (isContentVideo) {
@@ -332,14 +332,41 @@ export default function RepurposePage() {
                         toast.success("Opening YouTube video...");
                         return;
                     }
+
+                    toast.loading("Preparing download...", { id: "download" });
                     const absoluteUrl = getMediaUrl(fileUrl);
-                    const a = document.createElement("a");
-                    a.href = absoluteUrl;
-                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    toast.success("Download started!");
+
+                    try {
+                        const response = await fetch(absoluteUrl);
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+
+                        const a = document.createElement("a");
+                        a.href = blobUrl;
+                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // Cleanup
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(blobUrl);
+                            document.body.removeChild(a);
+                        }, 100);
+
+                        toast.success("Download started!", { id: "download" });
+                    } catch (fetchError) {
+                        console.error("Fetch download failed, falling back to direct link:", fetchError);
+                        // Fallback to direct link if fetch fails (e.g. CORS)
+                        const a = document.createElement("a");
+                        a.href = absoluteUrl;
+                        a.target = "_blank";
+                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        toast.success("Download initiated!", { id: "download" });
+                    }
                 } else {
                     const downloadContent = item.content || `${item.title}\n\n${item.description}`;
                     const blob = new Blob([downloadContent], { type: "text/plain" });
@@ -355,7 +382,7 @@ export default function RepurposePage() {
                 }
             } catch (error) {
                 console.error("Download failed:", error);
-                toast.error("Failed to download file.");
+                toast.error("Failed to download file.", { id: "download" });
             }
         } else if (action === "schedule" || action === "broadcast") {
             const params = new URLSearchParams({
@@ -802,7 +829,8 @@ export default function RepurposePage() {
                                                     })()
                                                 )}
 
-                                                <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
+                                                {/* Play Button Overlay - disappears when playing, reappears on hover */}
+                                                <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100' : 'opacity-100 scale-100'}`}>
                                                     <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
                                                         <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                                                     </div>
