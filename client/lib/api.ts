@@ -98,6 +98,7 @@ export interface ContentAsset {
     filePath?: string;
     fileSize?: number;
     duration?: number;
+    mimeType?: string;
     createdAt: string;
     analysis?: AnalysisResult;
 }

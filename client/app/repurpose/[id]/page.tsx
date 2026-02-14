@@ -104,14 +104,18 @@ export default function RepurposePage() {
         const typeStr = String(content.type || "").toLowerCase();
         const urlStr = String(content.fileUrl || "").toLowerCase();
         const pathStr = String(content.filePath || "").toLowerCase();
+        const mimeStr = String(content.mimeType || "").toLowerCase();
 
         return (
             typeStr.includes("video") ||
             typeStr === "youtube" ||
+            mimeStr.startsWith("video/") ||
             urlStr.includes("youtube.com") ||
             urlStr.includes("youtu.be") ||
+            urlStr.includes("/video/upload/") || // Cloudinary video pattern
             urlStr.endsWith(".mp4") ||
             urlStr.endsWith(".mov") ||
+            urlStr.endsWith(".webm") ||
             pathStr.endsWith(".mp4") ||
             pathStr.endsWith(".mov")
         );

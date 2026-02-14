@@ -30,15 +30,27 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
         const filePath = req.file ? req.file.path.replace(/\\/g, '/') : url;
         const normalizedFileUrl = filePath && !filePath.startsWith('http') && !filePath.startsWith('/') ? `/${filePath}` : filePath;
 
+        // Auto-detect type if unknown
+        let finalContentType = contentType;
+        if (!finalContentType || finalContentType === 'unknown') {
+            const mime = req.file?.mimetype || '';
+            if (mime.startsWith('video/')) finalContentType = 'video';
+            else if (mime.startsWith('audio/')) finalContentType = 'audio';
+            else if (mime.startsWith('image/')) finalContentType = 'image';
+            else if (mime === 'text/plain' || mime.includes('pdf') || mime.includes('msword') || mime.includes('document')) finalContentType = 'document';
+            else if (url?.includes('youtube.com') || url?.includes('youtu.be')) finalContentType = 'video';
+            else finalContentType = 'unknown';
+        }
+
         const content = await prisma.contentAsset.create({
             data: {
                 userId: req.user.id,
                 title: title || (req.file ? req.file.originalname : 'URL Import'),
                 description,
-                contentType: contentType || 'unknown',
+                contentType: finalContentType,
                 fileUrl: normalizedFileUrl,
                 fileSize: req.file ? BigInt(req.file.size) : 0n,
-                mimeType: req.file ? req.file.mimetype : 'text/url',
+                mimeType: req.file ? req.file.mimetype : (url ? 'text/url' : 'unknown'),
                 sourceUrl: url || null,
                 sourcePlatform: url ? (url.includes('youtube') ? 'youtube' : 'other') : 'upload',
                 uploadStatus: 'completed',
