@@ -413,6 +413,56 @@ export const generateCaptions = async (
     }
 };
 
+export const generateVideoClips = async (
+    sourceText: string,
+    numClips: number = 6
+): Promise<any> => {
+    try {
+        const prompt = `Analyze the following video transcript and identify ${numClips} highly engaging, viral-potential short clips.
+For each clip, provide:
+1. A catchy viral title
+2. A very brief description (viral hook)
+3. ESTIMATED start and end timestamps (in seconds) based on the content flow.
+   - Each clip should be 15-60 seconds long.
+
+Transcript:
+${sourceText.substring(0, 8000)}
+
+Respond in JSON format:
+{
+  "clips": [
+    {
+      "title": "Clip Title",
+      "hook": "Viral hook here",
+      "startTime": 0,
+      "endTime": 30
+    }
+  ]
+}`;
+
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert video content strategist.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.6
+        });
+
+        return JSON.parse(response.choices[0].message.content || '{}');
+    } catch (error: any) {
+        console.error('OpenAI Video Clips error:', error);
+        throw new Error(`OpenAI Video Clips generation failed: ${error.message}`);
+    }
+};
+
 export default {
     transcribeAudio,
     analyzeContent,
@@ -420,5 +470,6 @@ export default {
     generateSocialPost,
     generateTwitterThread,
     extractVideoHooks,
-    generateCaptions
+    generateCaptions,
+    generateVideoClips
 };
