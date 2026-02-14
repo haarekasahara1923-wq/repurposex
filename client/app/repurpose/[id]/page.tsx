@@ -56,6 +56,7 @@ interface GeneratedItem {
     content?: string;
     startTime?: number;
     endTime?: number;
+    fileUrl?: string;
 }
 
 const HOOKS = [
