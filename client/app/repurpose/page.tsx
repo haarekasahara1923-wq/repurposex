@@ -40,6 +40,13 @@ type AspectRatio = "9:16" | "1:1" | "16:9" | "twitter";
 type ContentType = "video" | "document";
 type DocStyle = "blog" | "newsletter" | "mail" | "post";
 
+const ASPECT_CLASS_MAP: Record<string, string> = {
+    "9:16": "aspect-[9/16]",
+    "1:1": "aspect-square",
+    "16:9": "aspect-video",
+    "twitter": "aspect-[1.20/1]"
+};
+
 interface GeneratedItem {
     id: string;
     title: string;
@@ -754,7 +761,15 @@ export default function RepurposeWizard() {
                                     </div>
 
                                     {/* Preview Area */}
-                                    <div className="aspect-[9/16] bg-black relative flex items-center justify-center">
+                                    <div className={`${contentType === "video" ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} bg-black relative flex items-center justify-center overflow-hidden cursor-pointer`}
+                                        onClick={(e) => {
+                                            const video = e.currentTarget.querySelector('video');
+                                            if (video) {
+                                                if (video.paused) video.play();
+                                                else video.pause();
+                                            }
+                                        }}
+                                    >
                                         {contentType === "video" ? (
                                             <>
                                                 {/* Video Preview with Media Fragments for Clips */}
@@ -766,12 +781,12 @@ export default function RepurposeWizard() {
 
                                                     if (ytId) {
                                                         return (
-                                                            <div className="w-full h-full overflow-hidden relative pointer-events-none">
-                                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320%] h-full pointer-events-auto">
+                                                            <div className="w-full h-full relative">
+                                                                <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
                                                                     <iframe
                                                                         width="100%"
                                                                         height="100%"
-                                                                        src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&autoplay=0&rel=0&controls=0&modestbranding=1&loop=1`}
+                                                                        src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&autoplay=0&rel=0&controls=1&modestbranding=1`}
                                                                         title="YouTube video player"
                                                                         frameBorder="0"
                                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -238,6 +238,7 @@ export const repurposeAPI = {
         outputType: string;
         tone?: string;
         platforms?: string[];
+        config?: any;
     }): Promise<RepurposeJob> => {
         const response = await api.post('/api/v1/repurpose', data);
         return response.data;

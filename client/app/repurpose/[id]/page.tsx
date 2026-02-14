@@ -44,6 +44,13 @@ const DOC_STYLES = [
     { id: "post", label: "Social Thread" }
 ] as const;
 
+const ASPECT_CLASS_MAP: Record<string, string> = {
+    "9:16": "aspect-[9/16]",
+    "1:1": "aspect-square",
+    "16:9": "aspect-video",
+    "twitter": "aspect-[1.20/1]" // Twitter/X preferred ratio
+};
+
 type AspectRatio = typeof ASPECT_RATIOS[number]["id"];
 type DocStyle = typeof DOC_STYLES[number]["id"];
 
@@ -233,7 +240,10 @@ export default function RepurposePage() {
             const job = await repurposeAPI.create({
                 contentId: id,
                 outputType: jobType,
-                tone: 'professional' // Default tone
+                tone: 'professional', // Default tone
+                config: isContentVideo
+                    ? { numShorts: videoConfig.numShorts, aspectRatio: videoConfig.aspectRatio }
+                    : { numPieces: docConfig.numPieces, style: docConfig.style }
             });
 
             console.log("Job created:", job);
@@ -693,7 +703,19 @@ export default function RepurposePage() {
                                         </button>
                                     </div>
 
-                                    <div className="aspect-[9/16] relative flex items-center justify-center overflow-hidden">
+                                    <div className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`}
+                                        onClick={(e) => {
+                                            // Find video or iframe and trigger play
+                                            const video = e.currentTarget.querySelector('video');
+                                            if (video) {
+                                                if (video.paused) video.play();
+                                                else video.pause();
+                                                return;
+                                            }
+                                            const overlay = e.currentTarget.querySelector('.play-overlay');
+                                            if (overlay) overlay.classList.add('hidden');
+                                        }}
+                                    >
                                         {isContentVideo ? (
                                             <>
                                                 {/* Parent Video Clip Preview */}
@@ -706,12 +728,12 @@ export default function RepurposePage() {
                                                         if (isYouTube) {
                                                             const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
                                                             return ytId ? (
-                                                                <div className="absolute inset-0 pointer-events-none">
-                                                                    <div className="w-[300%] h-full absolute left-1/2 -translate-x-1/2">
+                                                                <div className="absolute inset-0">
+                                                                    <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
                                                                         <iframe
                                                                             width="100%"
                                                                             height="100%"
-                                                                            src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=0&mute=1&autoplay=1&loop=1&playlist=${ytId}`}
+                                                                            src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=0&rel=0&modestbranding=1`}
                                                                             frameBorder="0"
                                                                             className="w-full h-full"
                                                                         />
@@ -739,9 +761,10 @@ export default function RepurposePage() {
                                                     })()
                                                 )}
 
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-[1]" />
-                                                <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center z-[2] group-hover:scale-110 transition duration-500">
-                                                    <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                                                <div className="play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none">
+                                                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
+                                                        <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                                                    </div>
                                                 </div>
                                                 <div className="absolute bottom-0 left-0 right-0 p-6 z-[2]">
                                                     <h3 className="font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
