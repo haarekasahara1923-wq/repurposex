@@ -326,7 +326,7 @@ export default function RepurposePage() {
         if (action === "download") {
             try {
                 if (isContentVideo) {
-                    const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
+                    const fileUrl = item.fileUrl || content?.fileUrl || content?.filePath || "";
                     if (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be")) {
                         window.open(fileUrl, '_blank');
                         toast.success("Opening YouTube video...");
