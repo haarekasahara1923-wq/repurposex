@@ -330,48 +330,47 @@ export default function RepurposePage() {
                     return;
                 }
 
+                // YouTube URLs cannot be directly downloaded from the browser
                 if (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be")) {
-                    window.open(fileUrl, '_blank');
-                    toast.success("Opening YouTube video...");
+                    toast.error("YouTube clips can only be shared/scheduled. Direct download is not available for simulated fragments.", {
+                        duration: 5000,
+                        icon: '⚠️'
+                    });
                     return;
                 }
 
                 toast.loading("Preparing download...", { id: "download" });
                 const absoluteUrl = getMediaUrl(fileUrl);
 
-                // Attempt blob download to force file saving
+                // For local files, attempt a robust fetch/blob download
                 try {
-                    const response = await fetch(absoluteUrl, { mode: 'cors' });
-                    if (!response.ok) throw new Error('Network response was not ok');
+                    const response = await fetch(absoluteUrl);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const blob = await response.blob();
                     const blobUrl = window.URL.createObjectURL(blob);
 
-                    const a = document.createElement("a");
-                    a.href = blobUrl;
-                    // Tag with clip info so user knows it's the original file being used as clip
-                    const filename = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
+                    const link = document.createElement("a");
+                    link.href = blobUrl;
+                    link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
 
+                    // Cleanup
                     setTimeout(() => {
                         window.URL.revokeObjectURL(blobUrl);
-                        document.body.removeChild(a);
-                    }, 200);
+                        document.body.removeChild(link);
+                    }, 500);
 
                     toast.success("Download started!", { id: "download" });
                 } catch (fetchError) {
-                    console.error("Blob download failed, falling back to direct link:", fetchError);
-                    // Fallback to direct link but try to force attachment
-                    const a = document.createElement("a");
-                    a.href = absoluteUrl;
-                    a.target = "_blank";
-                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    toast.success("Download initiated in new tab", { id: "download" });
-                    toast("Note: If redirection occurs, your browser is blocking direct downloads from this source.", { duration: 5000 });
+                    console.error("Fetch download failed:", fetchError);
+                    // Final fallback - direct link without target blink to avoid navigation issues in some browsers
+                    const link = document.createElement("a");
+                    link.href = absoluteUrl;
+                    link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
+                    link.click();
+                    toast.success("Download initiated", { id: "download" });
                 }
             } catch (error) {
                 console.error("Download failed:", error);
@@ -769,13 +768,14 @@ export default function RepurposePage() {
     );
 }
 
+
 // Sub-component for individual result items to manage state locally
 function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, handleAction, selectedItems, setSelectedItems }: any) {
     const [isPlaying, setIsPlaying] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [isYTActive, setIsYTActive] = useState(false);
 
     const togglePlay = (e: React.MouseEvent) => {
-        // Prevent triggering toggle if clicking the Save/Schedule buttons
         if ((e.target as HTMLElement).closest('button')) return;
 
         if (videoRef.current) {
@@ -785,8 +785,9 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                 videoRef.current.pause();
             }
         } else {
-            // fallback for iframed content
-            setIsPlaying(!isPlaying);
+            // For YouTube
+            setIsYTActive(true);
+            setIsPlaying(true);
         }
     };
 
@@ -796,7 +797,8 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
         <div
             className={`group relative bg-slate-900/50 border rounded-3xl overflow-hidden transition-all duration-300 ${isSelected ? 'border-purple-500 shadow-2xl shadow-purple-500/10' : 'border-white/5 hover:border-purple-500/40'}`}
         >
-            <div className="absolute top-4 left-4 z-10">
+            {/* Selection Checkbox */}
+            <div className="absolute top-4 left-4 z-20">
                 <button
                     onClick={() => {
                         const next = new Set(selectedItems);
@@ -810,6 +812,7 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                 </button>
             </div>
 
+            {/* Media Content */}
             <div
                 className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`}
                 onClick={togglePlay}
@@ -825,25 +828,32 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                                 if (isYouTube) {
                                     const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
                                     return ytId ? (
-                                        <div className="absolute inset-0">
+                                        <div className="absolute inset-0 bg-black">
                                             <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
                                                 <iframe
                                                     width="100%"
                                                     height="100%"
-                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=0&rel=0&modestbranding=1`}
+                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`}
                                                     frameBorder="0"
-                                                    className="w-full h-full"
+                                                    className={`w-full h-full transition-opacity duration-500 ${isYTActive ? 'opacity-100' : 'opacity-40'}`}
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                 />
                                             </div>
                                         </div>
-                                    ) : null;
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full bg-slate-900 p-6 text-center">
+                                            <Video className="w-12 h-12 text-slate-700 mb-2" />
+                                            <p className="text-xs text-slate-500">YouTube link verification failed</p>
+                                        </div>
+                                    );
                                 }
 
                                 return (
                                     <video
                                         ref={videoRef}
-                                        src={`${absoluteUrl}#t=${item.startTime},${item.endTime}`}
-                                        className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"
+                                        src={`${absoluteUrl}#t=${item.startTime || 0},${item.endTime || 10}`}
+                                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                                        style={{ opacity: isPlaying ? 1 : 0.6 }}
                                         muted
                                         autoPlay
                                         playsInline
@@ -852,14 +862,15 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                                         onEnded={(e) => {
                                             const v = e.currentTarget;
                                             v.currentTime = item.startTime || 0;
-                                            v.play().catch(console.error);
+                                            v.play().catch(() => setIsPlaying(false));
                                         }}
                                         onTimeUpdate={(e) => {
                                             const v = e.currentTarget;
-                                            // Manual loop fallback for fragments
-                                            if (item.endTime && v.currentTime >= item.endTime) {
+                                            // Robust looping for fragments
+                                            const end = item.endTime || v.duration;
+                                            if (end > 0 && v.currentTime >= end) {
                                                 v.currentTime = item.startTime || 0;
-                                                v.play().catch(console.error);
+                                                v.play().catch(() => setIsPlaying(false));
                                             }
                                         }}
                                     />
@@ -867,47 +878,55 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                             })()
                         )}
 
-                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] transition-all pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
-                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
-                                <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                        {/* Overlay Play Button */}
+                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
+                            <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition duration-500 shadow-2xl">
+                                <Play className="w-8 h-8 text-white fill-white ml-1" />
                             </div>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-6 z-[2] pointer-events-none">
-                            <h3 className="font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
+
+                        {/* Video Info Gradient Overlay */}
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent z-[5] pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity" />
+
+                        <div className="absolute bottom-0 left-0 right-0 p-5 z-10 pointer-events-none">
+                            <h3 className="font-bold text-white text-sm mb-2 line-clamp-1 drop-shadow-lg">{item.title}</h3>
                             <div className="flex gap-2">
-                                <span className="text-[9px] font-black bg-purple-600 px-2 py-0.5 rounded uppercase">{videoConfig.aspectRatio}</span>
-                                <span className="text-[9px] font-black bg-blue-600 px-2 py-0.5 rounded uppercase">Subtitles</span>
+                                <span className="text-[10px] font-black bg-purple-600/90 text-white px-2 py-0.5 rounded shadow-sm border border-purple-400/30 uppercase tracking-tighter">{videoConfig.aspectRatio}</span>
+                                <span className="text-[10px] font-black bg-blue-600/90 text-white px-2 py-0.5 rounded shadow-sm border border-blue-400/30 uppercase tracking-tighter">AI Ready</span>
                             </div>
                         </div>
                     </>
                 ) : (
-                    <div className="w-full h-full bg-white p-8 group-hover:scale-105 transition duration-500 flex flex-col">
-                        <FileText className="w-12 h-12 text-slate-200 absolute -top-2 -right-2 transform rotate-12" />
-                        <h3 className="text-slate-900 font-bold text-xl mb-4 relative z-10">{item.title}</h3>
-                        <div className="flex-1 overflow-hidden">
+                    <div className="w-full h-full bg-white p-8 group-hover:bg-slate-50 transition-colors duration-500 flex flex-col">
+                        <FileText className="w-10 h-10 text-slate-100 absolute -top-1 -right-1 transform rotate-12" />
+                        <h3 className="text-slate-900 font-bold text-lg mb-4 relative z-10 line-clamp-2">{item.title}</h3>
+                        <div className="flex-1 overflow-hidden relative">
                             <p className="text-slate-500 text-xs leading-relaxed">{item.content}</p>
+                            <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-white to-transparent" />
                         </div>
                         <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                            <span className="text-[9px] font-black bg-slate-100 text-slate-400 px-2 py-0.5 rounded uppercase">AI Draft</span>
+                            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-tighter">Text Clip</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            <div className="p-2 grid grid-cols-3 gap-1 bg-black/40 border-t border-white/5 relative z-10">
-                <button onClick={() => handleAction(item, "schedule")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
-                    <Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400" />
-                    <span className="text-[9px] font-black text-gray-600 uppercase">Schedule</span>
+            {/* Bottom Actions */}
+            <div className="p-1 grid grid-cols-3 gap-1 bg-black/60 border-t border-white/5 relative z-20 backdrop-blur-md">
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "schedule"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
+                    <Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400 transition-colors" />
+                    <span className="text-[10px] font-black text-gray-500 group-hover/btn:text-gray-300 uppercase tracking-tighter">Schedule</span>
                 </button>
-                <button onClick={() => handleAction(item, "broadcast")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
-                    <Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400" />
-                    <span className="text-[9px] font-black text-gray-600 uppercase">Post</span>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "broadcast"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
+                    <Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400 transition-colors" />
+                    <span className="text-[10px] font-black text-gray-500 group-hover/btn:text-gray-300 uppercase tracking-tighter">Post</span>
                 </button>
-                <button onClick={() => handleAction(item, "download")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
-                    <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" />
-                    <span className="text-[9px] font-black text-gray-600 uppercase">Save</span>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "download"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
+                    <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400 transition-colors" />
+                    <span className="text-[10px] font-black text-gray-500 group-hover/btn:text-gray-300 uppercase tracking-tighter">Save</span>
                 </button>
             </div>
         </div>
     );
 }
+

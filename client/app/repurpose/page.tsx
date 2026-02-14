@@ -72,7 +72,6 @@ export default function RepurposeWizard() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [urlInput, setUrlInput] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [playingItems, setPlayingItems] = useState<Record<string, boolean>>({});
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [extractedText, setExtractedText] = useState<string>(""); // New state for document content
 
@@ -269,52 +268,52 @@ export default function RepurposeWizard() {
         if (action === "download") {
             try {
                 if (contentType === "video" && videoUrl) {
+                    if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
+                        toast.error("YouTube clips can only be shared/scheduled. Direct download is not available for simulated fragments.", {
+                            duration: 5000,
+                            icon: '⚠️'
+                        });
+                        return;
+                    }
+
                     toast.loading("Preparing download...", { id: "download" });
 
                     try {
-                        // Fetch the file as a blob to force download and avoid redirects
                         const response = await fetch(videoUrl);
                         if (!response.ok) throw new Error('Network response was not ok');
                         const blob = await response.blob();
                         const blobUrl = window.URL.createObjectURL(blob);
 
-                        const a = document.createElement("a");
-                        a.href = blobUrl;
-                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                        document.body.appendChild(a);
-                        a.click();
+                        const link = document.createElement("a");
+                        link.href = blobUrl;
+                        link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
 
-                        // Cleanup
                         setTimeout(() => {
                             window.URL.revokeObjectURL(blobUrl);
-                            document.body.removeChild(a);
-                        }, 100);
+                            document.body.removeChild(link);
+                        }, 500);
 
                         toast.success("Download started!", { id: "download" });
                     } catch (fetchError) {
                         console.error("Fetch download failed, falling back to direct link:", fetchError);
-                        // Fallback to direct link if fetch fails (e.g. CORS)
-                        const a = document.createElement("a");
-                        a.href = videoUrl;
-                        a.target = "_blank";
-                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        toast.success("Download initiated!", { id: "download" });
+                        const link = document.createElement("a");
+                        link.href = videoUrl;
+                        link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
+                        link.click();
+                        toast.success("Download initiated", { id: "download" });
                     }
                 } else {
-                    // Download actual generated text content
                     const downloadContent = item.content || `${item.title}\n\n${item.description}`;
                     const blob = new Blob([downloadContent], { type: "text/plain" });
                     const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`);
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
                     toast.success("Download started!");
                 }
             } catch (error) {
@@ -765,157 +764,16 @@ export default function RepurposeWizard() {
 
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {generatedItems.map((item) => (
-                                <div
+                                <ResultCard
                                     key={item.id}
-                                    className={`relative bg-slate-900 border rounded-2xl overflow-hidden group transition-all duration-300 ${selectedItems.has(item.id)
-                                        ? "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
-                                        : "border-slate-800 hover:border-purple-500/50"
-                                        }`}
-                                >
-                                    {/* Selection Checkbox */}
-                                    <div className="absolute top-3 left-3 z-10">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedItems.has(item.id)}
-                                            onChange={(e) => {
-                                                const newSet = new Set(selectedItems);
-                                                if (e.target.checked) newSet.add(item.id);
-                                                else newSet.delete(item.id);
-                                                setSelectedItems(newSet);
-                                            }}
-                                            className="w-5 h-5 rounded border-white/20 bg-black/50 backdrop-blur text-purple-600 focus:ring-purple-500"
-                                        />
-                                    </div>
-
-                                    {/* Preview Area */}
-                                    <div className={`${contentType === "video" ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} bg-black relative flex items-center justify-center overflow-hidden cursor-pointer`}
-                                        onClick={(e) => {
-                                            const video = e.currentTarget.querySelector('video');
-                                            if (video) {
-                                                if (video.paused) video.play();
-                                                else video.pause();
-                                            } else {
-                                                // For YouTube
-                                                setPlayingItems(prev => ({ ...prev, [item.id]: true }));
-                                            }
-                                        }}
-                                    >
-                                        {contentType === "video" ? (
-                                            <>
-                                                {/* Video Preview with Media Fragments for Clips */}
-                                                {/* Video Preview with Media Fragments for Clips */}
-                                                {/* Video Preview with Media Fragments for Clips */}
-                                                {/* Video Preview with Media Fragments for Clips */}
-                                                {(() => {
-                                                    const ytId = videoUrl ? getYoutubeId(videoUrl) : null;
-
-                                                    if (ytId) {
-                                                        return (
-                                                            <div className="w-full h-full relative">
-                                                                <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
-                                                                    <iframe
-                                                                        width="100%"
-                                                                        height="100%"
-                                                                        src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&autoplay=0&rel=0&controls=1&modestbranding=1`}
-                                                                        title="YouTube video player"
-                                                                        frameBorder="0"
-                                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                        allowFullScreen
-                                                                        className="w-full h-full"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    return videoUrl ? (
-                                                        <>
-                                                            <video
-                                                                key={`vid-${item.id}`} // Force re-render for each item
-                                                                src={`${videoUrl}#t=${item.startTime},${item.endTime}`}
-                                                                className="w-full h-full object-cover"
-                                                                controls
-                                                                playsInline
-                                                                preload="metadata"
-                                                                onPlay={() => setPlayingItems(prev => ({ ...prev, [item.id]: true }))}
-                                                                onPause={() => setPlayingItems(prev => ({ ...prev, [item.id]: false }))}
-                                                                onError={(e) => {
-                                                                    const target = e.currentTarget;
-                                                                    console.error("Clip preview error:", target.error);
-                                                                    target.style.display = 'none';
-                                                                    target.nextElementSibling?.classList.remove('hidden');
-                                                                }}
-                                                            />
-                                                            <div className="hidden absolute inset-0 bg-slate-800 flex flex-col items-center justify-center text-center p-4">
-                                                                <Wand2 className="w-6 h-6 text-gray-500 mb-2" />
-                                                                <p className="text-gray-400 text-xs">Video loading failed.</p>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
-                                                            <p className="text-gray-500">Preview Unavailable</p>
-                                                        </div>
-                                                    );
-                                                })()}
-
-                                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 pointer-events-none">
-                                                    <h3 className="font-bold text-white text-lg mb-1 leading-tight">{item.title}</h3>
-                                                    <p className="text-xs text-gray-300 line-clamp-2">{item.description}</p>
-                                                </div>
-
-                                                {/* Badges */}
-                                                {/* Play Button Overlay - disappears when playing, reappears on hover */}
-                                                <div className={`absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100' : 'opacity-100 scale-100'}`}>
-                                                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
-                                                        <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-                                                    </div>
-                                                </div>
-                                                <div className="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-lg z-10 pointer-events-none">
-                                                    AI Captions
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="p-8 bg-white text-black h-full w-full flex flex-col relative overflow-hidden">
-                                                <div className="absolute top-0 right-0 p-4 opacity-5">
-                                                    <FileText className="w-24 h-24" />
-                                                </div>
-                                                <h3 className="font-bold text-lg mb-4 relative z-10 border-b-2 border-slate-100 pb-2">{item.title}</h3>
-                                                <div className="relative z-10 text-[11px] text-gray-700 leading-relaxed whitespace-pre-wrap overflow-hidden line-clamp-[12]">
-                                                    {item.content || "Content preview unavailable..."}
-                                                </div>
-                                                <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
-                                                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded">{docConfig.style.toUpperCase()}</span>
-                                                    <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-1 rounded">SEO OPTIMIZED</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="p-4 grid grid-cols-3 gap-2 bg-slate-900 border-t border-slate-800">
-                                        <button
-                                            onClick={() => handleAction(item.id, "schedule")}
-                                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
-                                        >
-                                            <Calendar className="w-4 h-4 group-hover/btn:text-blue-400 transition-colors" />
-                                            <span className="text-[10px] uppercase font-bold">Schedule</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleAction(item.id, "broadcast")}
-                                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
-                                        >
-                                            <Share2 className="w-4 h-4 group-hover/btn:text-green-400 transition-colors" />
-                                            <span className="text-[10px] uppercase font-bold">Post</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleAction(item.id, "download")}
-                                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-800 text-gray-400 hover:text-white transition group/btn"
-                                        >
-                                            <Download className="w-4 h-4 group-hover/btn:text-purple-400 transition-colors" />
-                                            <span className="text-[10px] uppercase font-bold">Download</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                    item={item}
+                                    contentType={contentType}
+                                    videoConfig={videoConfig}
+                                    videoUrl={videoUrl}
+                                    handleAction={handleAction}
+                                    selectedItems={selectedItems}
+                                    setSelectedItems={setSelectedItems}
+                                />
                             ))}
                         </div>
                     </div>
@@ -954,3 +812,155 @@ function FilesIcon({ className }: { className?: string }) {
         </svg>
     )
 }
+
+// Sub-component for individual result items
+function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, selectedItems, setSelectedItems }: any) {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isYTActive, setIsYTActive] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    const togglePlay = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('button')) return;
+
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play().catch(console.error);
+            } else {
+                videoRef.current.pause();
+            }
+        } else {
+            setIsYTActive(true);
+            setIsPlaying(true);
+        }
+    };
+
+    const isSelected = selectedItems.has(item.id);
+
+    return (
+        <div
+            className={`relative bg-slate-900 border rounded-2xl overflow-hidden group transition-all duration-300 ${isSelected
+                ? "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+                : "border-slate-800 hover:border-purple-500/50"
+                }`}
+        >
+            <div className="absolute top-3 left-3 z-20">
+                <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                        const newSet = new Set(selectedItems);
+                        if (e.target.checked) newSet.add(item.id);
+                        else newSet.delete(item.id);
+                        setSelectedItems(newSet);
+                    }}
+                    className="w-5 h-5 rounded border-white/20 bg-black/50 backdrop-blur text-purple-600 focus:ring-purple-500 cursor-pointer"
+                />
+            </div>
+
+            <div
+                className={`${contentType === "video" ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} bg-black relative flex items-center justify-center overflow-hidden cursor-pointer`}
+                onClick={togglePlay}
+            >
+                {contentType === "video" ? (
+                    <>
+                        {videoUrl && (
+                            (() => {
+                                const ytId = getYoutubeId(videoUrl);
+
+                                if (ytId) {
+                                    return (
+                                        <div className="absolute inset-0 bg-black">
+                                            <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
+                                                <iframe
+                                                    width="100%"
+                                                    height="100%"
+                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`}
+                                                    frameBorder="0"
+                                                    className={`w-full h-full transition-opacity duration-500 ${isYTActive ? 'opacity-100' : 'opacity-40'}`}
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <video
+                                        ref={videoRef}
+                                        src={`${videoUrl}#t=${item.startTime || 0},${item.endTime || 10}`}
+                                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                                        style={{ opacity: isPlaying ? 1 : 0.6 }}
+                                        muted
+                                        autoPlay
+                                        playsInline
+                                        onPlay={() => setIsPlaying(true)}
+                                        onPause={() => setIsPlaying(false)}
+                                        onEnded={(e) => {
+                                            const v = e.currentTarget;
+                                            v.currentTime = item.startTime || 0;
+                                            v.play().catch(() => setIsPlaying(false));
+                                        }}
+                                        onTimeUpdate={(e) => {
+                                            const v = e.currentTarget;
+                                            const end = item.endTime || v.duration;
+                                            if (end > 0 && v.currentTime >= end) {
+                                                v.currentTime = item.startTime || 0;
+                                                v.play().catch(() => setIsPlaying(false));
+                                            }
+                                        }}
+                                    />
+                                );
+                            })()
+                        )}
+
+                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
+                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition duration-500 shadow-xl">
+                                <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                            </div>
+                        </div>
+
+                        <div className="absolute bottom-0 left-0 right-0 p-5 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                            <h3 className="font-bold text-white text-sm mb-2 line-clamp-1">{item.title}</h3>
+                            <div className="flex gap-2">
+                                <span className="text-[10px] font-black bg-purple-600 px-2 py-0.5 rounded border border-purple-400/30 uppercase tracking-tighter">{videoConfig.aspectRatio}</span>
+                                <span className="text-[10px] font-black bg-blue-600 px-2 py-0.5 rounded border border-blue-400/30 uppercase tracking-tighter">AI Shorts</span>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="w-full h-full bg-white p-8 group-hover:bg-slate-50 transition-colors duration-500 flex flex-col">
+                        <div className="flex-1 overflow-hidden relative">
+                            <h3 className="text-slate-900 font-bold text-lg mb-4 line-clamp-2">{item.title}</h3>
+                            <p className="text-slate-500 text-xs leading-relaxed">{item.content}</p>
+                            <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-white to-transparent" />
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-tighter">AI Piece</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="p-2 grid grid-cols-3 gap-1 bg-black/40 border-t border-white/5 relative z-20">
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item.id, "schedule"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
+                    <Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400" />
+                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">Schedule</span>
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item.id, "broadcast"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
+                    <Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400" />
+                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">Post</span>
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item.id, "download"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
+                    <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" />
+                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">Save</span>
+                </button>
+            </div>
+        </div>
+    );
+}
+
+const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
