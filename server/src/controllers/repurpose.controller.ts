@@ -344,18 +344,26 @@ async function processRepurposingJob(
                 });
                 break;
 
-            case 'facebook':
-            case 'youtube':
-                const platform = jobType === 'youtube' ? 'facebook' : jobType; // Fallback for youtube
-                result = await aiService.generateSocialPost(transcript, platform as any, config.tone || 'professional');
-                generatedContents.push({
-                    title: `${jobType.charAt(0).toUpperCase() + jobType.slice(1)} Post`,
-                    contentText: result.content,
-                    caption: result.content,
-                    hashtags: result.hashtags || [],
-                    contentType: 'social_post',
-                    targetPlatform: jobType
-                });
+            case 'video_to_shorts':
+            case 'youtube': // Mapping youtube as video clips too for now
+                result = await aiService.generateVideoClips(transcript, config.numShorts || 6);
+                if (result.clips && Array.isArray(result.clips)) {
+                    for (const clip of result.clips) {
+                        generatedContents.push({
+                            title: clip.title,
+                            contentText: clip.hook,
+                            caption: clip.hook,
+                            contentType: 'short_video',
+                            targetPlatform: 'youtube',
+                            fileUrl: content.fileUrl, // Important: use parent video URL
+                            metadata: {
+                                startTime: clip.startTime,
+                                endTime: clip.endTime,
+                                hook: clip.hook
+                            }
+                        });
+                    }
+                }
                 break;
 
             default:

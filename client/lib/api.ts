@@ -132,6 +132,7 @@ export interface RepurposeJob {
     progress: number;
     errorMessage?: string;
     result?: any;
+    generatedContent?: any[];
     createdAt: string;
 }
 

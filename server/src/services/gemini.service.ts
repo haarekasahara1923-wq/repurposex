@@ -245,9 +245,46 @@ Respond STRICTLY in JSON format:
     }
 };
 
+export const generateVideoClips = async (
+    sourceText: string,
+    numClips: number = 6
+): Promise<any> => {
+    try {
+        const prompt = `Analyze the following video transcript and identify ${numClips} highly engaging, viral-potential short clips.
+For each clip, provide:
+1. A catchy viral title
+2. A very brief description (viral hook)
+3. ESTIMATED start and end timestamps (in seconds) based on the content flow.
+   - Each clip should be 15-60 seconds long.
+   - If the transcript doesn't have timestamps, use logical segments (e.g., Clip 1: 0-30s, Clip 2: 45-90s, etc.).
+
+Transcript:
+${sourceText.substring(0, 8000)}
+
+Respond STRICTLY in JSON format:
+{
+  "clips": [
+    {
+      "title": "Clip Title",
+      "hook": "Viral hook here",
+      "startTime": 0,
+      "endTime": 30
+    }
+  ]
+}`;
+
+        const responseText = await generateWithFallback(prompt);
+        return parseAIJson(responseText);
+    } catch (error: any) {
+        console.error('Gemini Video Clips error:', error);
+        throw new Error(`Gemini Video Clips generation failed: ${error.message}`);
+    }
+};
+
 export default {
     analyzeContent,
     generateSocialPost,
     generateBlogPost,
-    generateTwitterThread
+    generateTwitterThread,
+    generateVideoClips
 };
