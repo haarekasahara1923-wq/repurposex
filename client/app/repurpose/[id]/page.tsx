@@ -232,6 +232,21 @@ export default function RepurposePage() {
         const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
         if (isContentVideo || isYouTube) {
+            const cleanUrl = (url: string) => {
+                if (!url) return "";
+                if (url.startsWith("http") || url.startsWith("blob:")) return url;
+
+                // Handle legacy filesystem paths (C:\tmp\uploads\file or /tmp/uploads/file)
+                const filename = url.split(/[\\/]/).pop();
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+                // If it was already a relative path starting with /api or /uploads, it's fine
+                if (url.startsWith("/api") || url.startsWith("/uploads")) return `${baseUrl}${url}`;
+
+                // Fallback: assume it's in the /uploads folder
+                return `${baseUrl}/uploads/${filename}`;
+            };
+
             if (isYouTube) {
                 const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/)([^&?\/]+))/);
                 const videoId = videoIdMatch?.[1];
@@ -255,19 +270,17 @@ export default function RepurposePage() {
             }
 
             // Real video tag for direct uploads
-            if (fileUrl && (fileUrl.startsWith("http") || fileUrl.startsWith("/api") || fileUrl.startsWith("blob:") || fileUrl.startsWith("/uploads"))) {
-                // Ensure URL is absolute for the video tag if it's a relative back-end path
-                const absoluteUrl = fileUrl.startsWith("/") && !fileUrl.startsWith("/api") ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${fileUrl}` : fileUrl;
-
+            const videoSrc = cleanUrl(fileUrl);
+            if (videoSrc) {
                 return (
                     <div className="w-full aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
                         <video
-                            src={absoluteUrl}
+                            src={videoSrc}
                             controls
                             className="w-full h-full object-contain"
                             poster={content.analysis?.thumbnailUrl}
                             onError={(e) => {
-                                console.error("Video element failed to load:", absoluteUrl);
+                                console.error("Video element failed to load:", videoSrc);
                                 // Fallback to placeholder UI on error
                                 const target = e.currentTarget;
                                 target.classList.add('hidden');
