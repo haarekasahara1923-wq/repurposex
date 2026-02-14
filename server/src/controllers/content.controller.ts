@@ -6,6 +6,7 @@ import path from 'path';
 import openaiService from '../services/openai.service';
 import geminiService from '../services/gemini.service';
 import { emailService } from '../services/email.service';
+import axios from 'axios';
 
 export const uploadContent = async (req: AuthRequest, res: Response) => {
     try {
@@ -220,17 +221,24 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
             // Read text file from local filesystem
             try {
                 let fsPath = content.fileUrl;
-                if (fsPath.startsWith('/uploads')) {
-                    const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
-                    fsPath = path.join(uploadDir, fsPath.substring(8));
-                } else if (!fsPath.startsWith('/tmp') && !fsPath.startsWith('C:') && !fsPath.startsWith('/')) {
-                    // It's a relative path, assume in uploads
-                    const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
-                    fsPath = path.join(uploadDir, fsPath);
-                }
+                if (fsPath.startsWith('http')) {
+                    // Fetch from Cloudinary/Remote URL
+                    console.log(`Fetching remote file for analysis: ${fsPath}`);
+                    const response = await axios.get(fsPath);
+                    textToAnalyze = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+                } else {
+                    if (fsPath.startsWith('/uploads')) {
+                        const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
+                        fsPath = path.join(uploadDir, fsPath.substring(8));
+                    } else if (!fsPath.startsWith('/tmp') && !fsPath.startsWith('C:') && !fsPath.startsWith('/')) {
+                        // It's a relative path, assume in uploads
+                        const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
+                        fsPath = path.join(uploadDir, fsPath);
+                    }
 
-                console.log(`Analyzing file at: ${fsPath}`);
-                textToAnalyze = await fs.readFile(fsPath, 'utf-8');
+                    console.log(`Analyzing file at: ${fsPath}`);
+                    textToAnalyze = await fs.readFile(fsPath, 'utf-8');
+                }
             } catch (err) {
                 console.warn(`Failed to read file at ${content.fileUrl}, using metadata instead:`, err);
                 textToAnalyze = `Title: ${content.title}\nDescription: ${content.description || ''}`;
