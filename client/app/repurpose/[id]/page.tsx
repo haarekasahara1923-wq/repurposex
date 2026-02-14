@@ -91,6 +91,7 @@ export default function RepurposePage() {
     const [processingProgress, setProcessingProgress] = useState(0);
     const [generatedItems, setGeneratedItems] = useState<GeneratedItem[]>([]);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [playingItems, setPlayingItems] = useState<Record<string, boolean>>({});
 
     // Configuration State
     const [videoConfig, setVideoConfig] = useState({
@@ -322,19 +323,48 @@ export default function RepurposePage() {
     };
 
     const handleAction = (item: GeneratedItem, action: string) => {
-        if (action === "download" && item.content) {
-            const blob = new Blob([item.content], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            toast.success("Download started");
-        } else {
-            toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)} triggered!`);
+        if (action === "download") {
+            try {
+                if (isContentVideo) {
+                    const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
+                    if (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be")) {
+                        window.open(fileUrl, '_blank');
+                        toast.success("Opening YouTube video...");
+                        return;
+                    }
+                    const absoluteUrl = getMediaUrl(fileUrl);
+                    const a = document.createElement("a");
+                    a.href = absoluteUrl;
+                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    toast.success("Download started!");
+                } else {
+                    const downloadContent = item.content || `${item.title}\n\n${item.description}`;
+                    const blob = new Blob([downloadContent], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    toast.success("Download started!");
+                }
+            } catch (error) {
+                console.error("Download failed:", error);
+                toast.error("Failed to download file.");
+            }
+        } else if (action === "schedule" || action === "broadcast") {
+            const params = new URLSearchParams({
+                title: item.title,
+                description: item.description || (typeof item.content === 'string' ? item.content : ""),
+                broadcast: action === "broadcast" ? "true" : "false"
+            });
+            router.push(`/schedule?${params.toString()}`);
+            toast.success(action === "broadcast" ? "Opening Broadcast Wizard..." : "Opening Scheduler...");
         }
     };
 
@@ -675,7 +705,21 @@ export default function RepurposePage() {
                             <div className="flex gap-4">
                                 <button onClick={() => setStep("configure")} className="px-6 py-3 bg-slate-900 border border-white/5 rounded-xl font-bold hover:bg-slate-800 transition">Adjust Settings</button>
                                 <button
-                                    onClick={() => toast.success("Broadcast initiated for selected items!")}
+                                    onClick={() => {
+                                        const selected = generatedItems.filter(i => selectedItems.has(i.id));
+                                        if (selected.length === 0) {
+                                            toast.error("Please select items to broadcast");
+                                            return;
+                                        }
+                                        const first = selected[0];
+                                        const params = new URLSearchParams({
+                                            title: first.title,
+                                            description: first.description || (first.content || ""),
+                                            broadcast: "true"
+                                        });
+                                        router.push(`/schedule?${params.toString()}`);
+                                        toast.success("Opening Broadcast Wizard for selected items!");
+                                    }}
                                     className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-black shadow-lg shadow-purple-500/20 hover:scale-105 transition"
                                 >
                                     BROADCAST ALL
@@ -712,8 +756,8 @@ export default function RepurposePage() {
                                                 else video.pause();
                                                 return;
                                             }
-                                            const overlay = e.currentTarget.querySelector('.play-overlay');
-                                            if (overlay) overlay.classList.add('hidden');
+                                            // For YouTube/Iframe
+                                            setPlayingItems(prev => ({ ...prev, [item.id]: true }));
                                         }}
                                     >
                                         {isContentVideo ? (
@@ -750,18 +794,15 @@ export default function RepurposePage() {
                                                                 autoPlay
                                                                 loop
                                                                 playsInline
+                                                                onPlay={() => setPlayingItems(prev => ({ ...prev, [item.id]: true }))}
+                                                                onPause={() => setPlayingItems(prev => ({ ...prev, [item.id]: false }))}
                                                                 onMouseOver={e => e.currentTarget.play()}
-                                                                onClick={e => {
-                                                                    const v = e.currentTarget;
-                                                                    if (v.paused) v.play();
-                                                                    else v.pause();
-                                                                }}
                                                             />
                                                         );
                                                     })()
                                                 )}
 
-                                                <div className="play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none">
+                                                <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
                                                     <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
                                                         <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                                                     </div>

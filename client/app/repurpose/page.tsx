@@ -72,6 +72,7 @@ export default function RepurposeWizard() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [urlInput, setUrlInput] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [playingItems, setPlayingItems] = useState<Record<string, boolean>>({});
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [extractedText, setExtractedText] = useState<string>(""); // New state for document content
 
@@ -767,6 +768,9 @@ export default function RepurposeWizard() {
                                             if (video) {
                                                 if (video.paused) video.play();
                                                 else video.pause();
+                                            } else {
+                                                // For YouTube
+                                                setPlayingItems(prev => ({ ...prev, [item.id]: true }));
                                             }
                                         }}
                                     >
@@ -807,6 +811,8 @@ export default function RepurposeWizard() {
                                                                 controls
                                                                 playsInline
                                                                 preload="metadata"
+                                                                onPlay={() => setPlayingItems(prev => ({ ...prev, [item.id]: true }))}
+                                                                onPause={() => setPlayingItems(prev => ({ ...prev, [item.id]: false }))}
                                                                 onError={(e) => {
                                                                     const target = e.currentTarget;
                                                                     console.error("Clip preview error:", target.error);
@@ -832,6 +838,11 @@ export default function RepurposeWizard() {
                                                 </div>
 
                                                 {/* Badges */}
+                                                <div className={`absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
+                                                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
+                                                        <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                                                    </div>
+                                                </div>
                                                 <div className="absolute top-4 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-lg z-10 pointer-events-none">
                                                     AI Captions
                                                 </div>
