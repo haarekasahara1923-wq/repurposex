@@ -9,8 +9,20 @@ import {
 } from '../controllers/content.controller';
 
 const router = Router();
+
+// Configure multer to use /tmp on Vercel (read-only filesystem fix)
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : 'uploads/';
+
+// Ensure directory exists (only if not on Vercel, as /tmp is managed by the OS)
+if (!process.env.VERCEL) {
+    const fs = require('fs');
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+}
+
 const upload = multer({
-    dest: 'uploads/',
+    dest: uploadDir,
     limits: { fileSize: 2 * 1024 * 1024 * 1024 } // 2GB
 });
 
