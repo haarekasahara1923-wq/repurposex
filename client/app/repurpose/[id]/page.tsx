@@ -268,7 +268,7 @@ export default function RepurposePage() {
                     clearInterval(pollInterval);
                     generateMockResults(); // Fallback to mock
                     setStep("results");
-                    toast.warn("Using smart-mock generation (AI is taking too long)");
+                    toast("Using smart-mock generation (AI is taking too long)");
                 }
             }, 2000);
 
