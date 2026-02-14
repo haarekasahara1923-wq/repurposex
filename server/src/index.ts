@@ -34,11 +34,33 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS
-app.use(cors({
-    origin: '*', // Allow all origins for debugging
-    credentials: true
-}));
+// Custom CORS & Logging Middleware for absolute reliability
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+
+    // Reflect origin or use wildcard for debugging (Vercel prefers reflection)
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+    // Log for Vercel debugging
+    console.log(`[SERVER] ${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${origin}`);
+
+    // Handle Preflight
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+    next();
+});
+
+// app.use(cors({ ... })); // Replaced by manual middleware for better Vercel compatibility
 
 // Body parsing
 app.use(express.json({ limit: '50mb' }));
