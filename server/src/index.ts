@@ -130,6 +130,7 @@ app.get('/health', async (req: Request, res: Response) => {
 });
 
 // API routes
+app.get('/api/v1/ping', (req, res) => res.json({ status: 'v1 pong' }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/content', contentRoutes);
