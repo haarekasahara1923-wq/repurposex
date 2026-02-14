@@ -21,7 +21,8 @@ import {
     FileText,
     Files,
     Layout,
-    CheckCircle2
+    CheckCircle2,
+    Video
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { contentAPI, API_BASE_URL } from "@/lib/api";
@@ -259,7 +260,7 @@ export default function RepurposePage() {
             };
 
             if (isYouTube) {
-                const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/)([^&?\/]+))/);
+                const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/);
                 const videoId = videoIdMatch?.[1];
 
                 if (videoId) {
@@ -278,6 +279,21 @@ export default function RepurposePage() {
                         </div>
                     );
                 }
+
+                // If we know it's YouTube but didn't find an ID, don't fall through to <video>
+                return (
+                    <div className="w-full aspect-video bg-slate-900 rounded-xl flex flex-col items-center justify-center border border-white/5">
+                        <Video className="w-12 h-12 text-gray-600 mb-4" />
+                        <p className="text-gray-400 font-medium font-outfit">YouTube Video Detected</p>
+                        <Link
+                            href={fileUrl}
+                            target="_blank"
+                            className="text-purple-400 text-xs mt-2 hover:underline inline-flex items-center gap-1"
+                        >
+                            View on YouTube <Sparkles className="w-3 h-3" />
+                        </Link>
+                    </div>
+                );
             }
 
             // Real video tag for direct uploads

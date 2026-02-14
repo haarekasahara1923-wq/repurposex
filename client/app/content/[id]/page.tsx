@@ -20,7 +20,7 @@ import {
     Calendar,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { contentAPI, repurposeAPI, ContentAsset, AnalysisResult } from "@/lib/api";
+import { contentAPI, repurposeAPI, ContentAsset, AnalysisResult, API_BASE_URL } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function ContentDetailsPage() {
@@ -104,6 +104,71 @@ export default function ContentDetailsPage() {
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
     };
 
+    const renderPreview = () => {
+        if (!content) return null;
+
+        const fileUrl = content.fileUrl || content.filePath || "";
+        const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
+        const typeStr = content.type.toLowerCase();
+        const isVideo = typeStr.includes("video") || isYouTube || fileUrl.includes("/video/upload/");
+
+        if (isVideo) {
+            if (isYouTube) {
+                const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/);
+                const videoId = videoIdMatch?.[1];
+
+                if (videoId) {
+                    return (
+                        <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative shadow-2xl mb-8">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src={`https://www.youtube.com/embed/${videoId}`}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full"
+                            />
+                        </div>
+                    );
+                }
+            }
+
+            // Direct Video
+            const cleanUrl = (url: string) => {
+                if (!url) return "";
+                if (url.startsWith("http")) return url;
+                const filename = url.split(/[\\/]/).pop();
+                return `${API_BASE_URL}/uploads/${filename}`;
+            };
+
+            const videoSrc = cleanUrl(fileUrl);
+            return (
+                <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative shadow-2xl mb-8">
+                    <video
+                        src={videoSrc}
+                        controls
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                            console.error("Detail page video load failed:", videoSrc);
+                            const target = e.currentTarget;
+                            target.classList.add('hidden');
+                            if (target.parentElement) {
+                                const fallback = document.createElement('div');
+                                fallback.className = "flex flex-col items-center justify-center h-full text-gray-500 bg-slate-900";
+                                fallback.innerHTML = `<p className="p-4 text-center">Video preview unavailable. Please check original source.</p>`;
+                                target.parentElement.appendChild(fallback);
+                            }
+                        }}
+                    />
+                </div>
+            );
+        }
+
+        return null;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -171,6 +236,11 @@ export default function ContentDetailsPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Media Preview Area */}
+                <div className="mb-8">
+                    {renderPreview()}
                 </div>
 
                 {/* AI Analysis Section */}
