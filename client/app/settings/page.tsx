@@ -93,7 +93,7 @@ function SettingsContent() {
     const handlePayment = async (gateway: string) => {
         toast.loading(`Initiating ${gateway} payment...`, { id: 'pay' });
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
             const token = localStorage.getItem('token');
             const planSlug = 'pro'; // Defaulting to pro for this button
 
@@ -131,7 +131,7 @@ function SettingsContent() {
         e.preventDefault();
         toast.loading("Sending invitation...", { id: "invite" });
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
             const token = localStorage.getItem('token');
             const organizationId = user?.organizationId || 'org-123'; // Fallback for demo
 

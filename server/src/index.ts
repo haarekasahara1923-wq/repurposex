@@ -49,8 +49,11 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     if (req.method === 'POST' || req.method === 'PUT') {
-        console.log('Body:', JSON.stringify(req.body, null, 2));
+        process.stdout.write('Body: ' + JSON.stringify(req.body, null, 2) + '\n');
     }
+    res.on('finish', () => {
+        console.log(`Response: ${res.statusCode}`);
+    });
     next();
 });
 
@@ -71,6 +74,8 @@ const limiter = rateLimit({
 import prisma from './config/database';
 
 // Health check
+app.get('/ping', (req, res) => res.json({ status: 'pong' }));
+
 app.get('/health', async (req: Request, res: Response) => {
     try {
         // Check DB connection and table existence

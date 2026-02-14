@@ -238,7 +238,7 @@ export default function RepurposePage() {
 
                 // Handle legacy filesystem paths (C:\tmp\uploads\file or /tmp/uploads/file)
                 const filename = url.split(/[\\/]/).pop();
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
 
                 // If it was already a relative path starting with /api or /uploads, it's fine
                 if (url.startsWith("/api") || url.startsWith("/uploads")) return `${baseUrl}${url}`;
