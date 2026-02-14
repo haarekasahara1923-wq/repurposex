@@ -325,60 +325,54 @@ export default function RepurposePage() {
     const handleAction = async (item: GeneratedItem, action: string) => {
         if (action === "download") {
             try {
-                if (isContentVideo) {
-                    const fileUrl = item.fileUrl || content?.fileUrl || content?.filePath || "";
-                    if (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be")) {
-                        window.open(fileUrl, '_blank');
-                        toast.success("Opening YouTube video...");
-                        return;
-                    }
+                const fileUrl = item.fileUrl || (isContentVideo ? (content?.fileUrl || content?.filePath) : "");
+                if (!fileUrl) {
+                    toast.error("File URL not found");
+                    return;
+                }
 
-                    toast.loading("Preparing download...", { id: "download" });
-                    const absoluteUrl = getMediaUrl(fileUrl);
+                if (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be")) {
+                    window.open(fileUrl, '_blank');
+                    toast.success("Opening YouTube video...");
+                    return;
+                }
 
-                    try {
-                        const response = await fetch(absoluteUrl);
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        const blob = await response.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
+                toast.loading("Preparing download...", { id: "download" });
+                const absoluteUrl = getMediaUrl(fileUrl);
 
-                        const a = document.createElement("a");
-                        a.href = blobUrl;
-                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                        document.body.appendChild(a);
-                        a.click();
+                // Attempt blob download to force file saving
+                try {
+                    const response = await fetch(absoluteUrl, { mode: 'cors' });
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
 
-                        // Cleanup
-                        setTimeout(() => {
-                            window.URL.revokeObjectURL(blobUrl);
-                            document.body.removeChild(a);
-                        }, 100);
-
-                        toast.success("Download started!", { id: "download" });
-                    } catch (fetchError) {
-                        console.error("Fetch download failed, falling back to direct link:", fetchError);
-                        // Fallback to direct link if fetch fails (e.g. CORS)
-                        const a = document.createElement("a");
-                        a.href = absoluteUrl;
-                        a.target = "_blank";
-                        a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        toast.success("Download initiated!", { id: "download" });
-                    }
-                } else {
-                    const downloadContent = item.content || `${item.title}\n\n${item.description}`;
-                    const blob = new Blob([downloadContent], { type: "text/plain" });
-                    const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+                    a.href = blobUrl;
+                    // Tag with clip info so user knows it's the original file being used as clip
+                    const filename = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(blobUrl);
+                        document.body.removeChild(a);
+                    }, 200);
+
+                    toast.success("Download started!", { id: "download" });
+                } catch (fetchError) {
+                    console.error("Blob download failed, falling back to direct link:", fetchError);
+                    // Fallback to direct link but try to force attachment
+                    const a = document.createElement("a");
+                    a.href = absoluteUrl;
+                    a.target = "_blank";
+                    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    toast.success("Download started!");
+                    toast.success("Download initiated in new tab", { id: "download" });
+                    toast("Note: If redirection occurs, your browser is blocking direct downloads from this source.", { duration: 5000 });
                 }
             } catch (error) {
                 console.error("Download failed:", error);
@@ -819,18 +813,25 @@ export default function RepurposePage() {
                                                                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"
                                                                 muted
                                                                 autoPlay
-                                                                loop
                                                                 playsInline
                                                                 onPlay={() => setPlayingItems(prev => ({ ...prev, [item.id]: true }))}
                                                                 onPause={() => setPlayingItems(prev => ({ ...prev, [item.id]: false }))}
+                                                                onTimeUpdate={(e) => {
+                                                                    const v = e.currentTarget;
+                                                                    // Manual loop for fragments check
+                                                                    if (v.currentTime >= (item.endTime || Infinity)) {
+                                                                        v.currentTime = item.startTime || 0;
+                                                                        v.play();
+                                                                    }
+                                                                }}
                                                                 onMouseOver={e => e.currentTarget.play()}
                                                             />
                                                         );
                                                     })()
                                                 )}
 
-                                                {/* Play Button Overlay - disappears when playing, reappears on hover */}
-                                                <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] group-hover:bg-black/20 transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100' : 'opacity-100 scale-100'}`}>
+                                                {/* Play Button Overlay - stays hidden while playing even on hover */}
+                                                <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
                                                     <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
                                                         <Play className="w-6 h-6 text-white fill-white ml-0.5" />
                                                     </div>
