@@ -136,6 +136,26 @@ export default function RepurposePage() {
         }
     }, [id, isAuthenticated, mounted]);
 
+    const getMediaUrl = (url: string) => {
+        if (!url) return "";
+        if (url.startsWith("http") || url.startsWith("blob:")) return url;
+
+        const baseUrl = API_BASE_URL;
+
+        // Handle leading slash
+        if (url.startsWith("/")) {
+            // If it already starts with /api or /uploads, just prepend baseUrl
+            if (url.startsWith("/api") || url.startsWith("/uploads") || url.startsWith("/tmp/uploads")) {
+                return `${baseUrl}${url}`;
+            }
+            // Otherwise, it might be an absolute path from backend that needs mapping
+            return `${baseUrl}${url}`;
+        }
+
+        // Fallback: assume it's a relative path to uploads
+        return `${baseUrl}/uploads/${url}`;
+    };
+
     const loadContent = async () => {
         try {
             setLoading(true);
@@ -244,7 +264,8 @@ export default function RepurposePage() {
                                 status: "ready",
                                 content: r.contentText,
                                 startTime: r.metadata?.startTime || (idx * 15),
-                                endTime: r.metadata?.endTime || (idx * 15 + 15)
+                                endTime: r.metadata?.endTime || (idx * 15 + 15),
+                                fileUrl: r.fileUrl
                             }));
                             setGeneratedItems(realItems);
                             setSelectedItems(new Set(realItems.map((i: any) => i.id)));
@@ -313,27 +334,7 @@ export default function RepurposePage() {
         const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
         if (isContentVideo || isYouTube) {
-            const cleanUrl = (url: string) => {
-                if (!url) return "";
-                if (url.startsWith("http") || url.startsWith("blob:")) return url;
-
-                // Handle legacy filesystem paths (C:\tmp\uploads\file or /tmp/uploads/file)
-                const filename = url.split(/[\\/]/).pop();
-                const baseUrl = API_BASE_URL;
-
-                // If it's an absolute path that starts with /tmp/uploads (Vercel)
-                if (url.startsWith("/tmp/uploads")) {
-                    return `${baseUrl}${url}`;
-                }
-
-                // If it was already a relative path starting with /api or /uploads, it's fine
-                if (url.startsWith("/api") || url.startsWith("/uploads")) {
-                    return `${baseUrl}${url}`;
-                }
-
-                // Fallback: assume it's in the /uploads folder
-                return `${baseUrl}/uploads/${filename}`;
-            };
+            const cleanUrl = getMediaUrl;
 
             if (isYouTube) {
                 const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/);
@@ -695,14 +696,14 @@ export default function RepurposePage() {
                                         {isContentVideo ? (
                                             <>
                                                 {/* Parent Video Clip Preview */}
-                                                {(content.fileUrl || content.filePath) && (
+                                                {(item.fileUrl || content.fileUrl || content.filePath) && (
                                                     (() => {
-                                                        const fileUrl = content.fileUrl || content.filePath || "";
+                                                        const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
                                                         const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
-                                                        const absoluteUrl = fileUrl.startsWith("/") && !fileUrl.startsWith("/api") ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${fileUrl}` : fileUrl;
+                                                        const absoluteUrl = getMediaUrl(fileUrl);
 
                                                         if (isYouTube) {
-                                                            const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/)([^&?\/]+))/)?.[1];
+                                                            const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
                                                             return ytId ? (
                                                                 <div className="absolute inset-0 pointer-events-none">
                                                                     <div className="w-[300%] h-full absolute left-1/2 -translate-x-1/2">
@@ -721,7 +722,7 @@ export default function RepurposePage() {
                                                         return (
                                                             <video
                                                                 src={`${absoluteUrl}#t=${item.startTime},${item.endTime}`}
-                                                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition duration-1000"
+                                                                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"
                                                                 muted
                                                                 autoPlay
                                                                 loop
