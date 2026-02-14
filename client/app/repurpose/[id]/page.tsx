@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -91,7 +91,6 @@ export default function RepurposePage() {
     const [processingProgress, setProcessingProgress] = useState(0);
     const [generatedItems, setGeneratedItems] = useState<GeneratedItem[]>([]);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [playingItems, setPlayingItems] = useState<Record<string, boolean>>({});
 
     // Configuration State
     const [videoConfig, setVideoConfig] = useState({
@@ -750,134 +749,165 @@ export default function RepurposePage() {
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                             {generatedItems.map((item) => (
-                                <div
+                                <ResultCard
                                     key={item.id}
-                                    className={`group relative bg-slate-900/50 border rounded-3xl overflow-hidden transition-all duration-300 ${selectedItems.has(item.id) ? 'border-purple-500 shadow-2xl shadow-purple-500/10' : 'border-white/5 hover:border-purple-500/40'}`}
-                                >
-                                    <div className="absolute top-4 left-4 z-10">
-                                        <button
-                                            onClick={() => {
-                                                const next = new Set(selectedItems);
-                                                if (next.has(item.id)) next.delete(item.id);
-                                                else next.add(item.id);
-                                                setSelectedItems(next);
-                                            }}
-                                            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${selectedItems.has(item.id) ? 'bg-purple-600 border-purple-500' : 'bg-black/50 border-white/20 hover:border-white/40'}`}
-                                        >
-                                            {selectedItems.has(item.id) && <CheckCircle2 className="w-4 h-4 text-white" />}
-                                        </button>
-                                    </div>
-
-                                    <div className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`}
-                                        onClick={(e) => {
-                                            // Find video or iframe and trigger play
-                                            const video = e.currentTarget.querySelector('video');
-                                            if (video) {
-                                                if (video.paused) video.play();
-                                                else video.pause();
-                                                return;
-                                            }
-                                            // For YouTube/Iframe
-                                            setPlayingItems(prev => ({ ...prev, [item.id]: true }));
-                                        }}
-                                    >
-                                        {isContentVideo ? (
-                                            <>
-                                                {/* Parent Video Clip Preview */}
-                                                {(item.fileUrl || content.fileUrl || content.filePath) && (
-                                                    (() => {
-                                                        const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
-                                                        const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
-                                                        const absoluteUrl = getMediaUrl(fileUrl);
-
-                                                        if (isYouTube) {
-                                                            const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
-                                                            return ytId ? (
-                                                                <div className="absolute inset-0">
-                                                                    <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
-                                                                        <iframe
-                                                                            width="100%"
-                                                                            height="100%"
-                                                                            src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=0&rel=0&modestbranding=1`}
-                                                                            frameBorder="0"
-                                                                            className="w-full h-full"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            ) : null;
-                                                        }
-
-                                                        return (
-                                                            <video
-                                                                src={`${absoluteUrl}#t=${item.startTime},${item.endTime}`}
-                                                                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"
-                                                                muted
-                                                                autoPlay
-                                                                playsInline
-                                                                onPlay={() => setPlayingItems(prev => ({ ...prev, [item.id]: true }))}
-                                                                onPause={() => setPlayingItems(prev => ({ ...prev, [item.id]: false }))}
-                                                                onTimeUpdate={(e) => {
-                                                                    const v = e.currentTarget;
-                                                                    // Manual loop for fragments check
-                                                                    if (v.currentTime >= (item.endTime || Infinity)) {
-                                                                        v.currentTime = item.startTime || 0;
-                                                                        v.play();
-                                                                    }
-                                                                }}
-                                                                onMouseOver={e => e.currentTarget.play()}
-                                                            />
-                                                        );
-                                                    })()
-                                                )}
-
-                                                {/* Play Button Overlay - stays hidden while playing even on hover */}
-                                                <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] transition-all pointer-events-none ${playingItems[item.id] ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
-                                                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
-                                                        <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-                                                    </div>
-                                                </div>
-                                                <div className="absolute bottom-0 left-0 right-0 p-6 z-[2]">
-                                                    <h3 className="font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
-                                                    <div className="flex gap-2">
-                                                        <span className="text-[9px] font-black bg-purple-600 px-2 py-0.5 rounded uppercase">9:16</span>
-                                                        <span className="text-[9px] font-black bg-blue-600 px-2 py-0.5 rounded uppercase">Subtitles</span>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="w-full h-full bg-white p-8 group-hover:scale-105 transition duration-500 flex flex-col">
-                                                <FileText className="w-12 h-12 text-slate-200 absolute -top-2 -right-2 transform rotate-12" />
-                                                <h3 className="text-slate-900 font-bold text-xl mb-4 relative z-10">{item.title}</h3>
-                                                <div className="flex-1 overflow-hidden">
-                                                    <p className="text-slate-500 text-xs leading-relaxed">{item.content}</p>
-                                                </div>
-                                                <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                                                    <span className="text-[9px] font-black bg-slate-100 text-slate-400 px-2 py-0.5 rounded uppercase">AI Draft</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="p-2 grid grid-cols-3 gap-1 bg-black/40 border-t border-white/5">
-                                        <button onClick={() => handleAction(item, "schedule")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
-                                            <Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400" />
-                                            <span className="text-[9px] font-black text-gray-600 uppercase">Schedule</span>
-                                        </button>
-                                        <button onClick={() => handleAction(item, "broadcast")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
-                                            <Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400" />
-                                            <span className="text-[9px] font-black text-gray-600 uppercase">Post</span>
-                                        </button>
-                                        <button onClick={() => handleAction(item, "download")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
-                                            <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" />
-                                            <span className="text-[9px] font-black text-gray-600 uppercase">Save</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                    item={item}
+                                    isContentVideo={isContentVideo}
+                                    content={content}
+                                    videoConfig={videoConfig}
+                                    getMediaUrl={getMediaUrl}
+                                    handleAction={handleAction}
+                                    selectedItems={selectedItems}
+                                    setSelectedItems={setSelectedItems}
+                                />
                             ))}
                         </div>
                     </div>
                 )}
             </main>
+        </div>
+    );
+}
+
+// Sub-component for individual result items to manage state locally
+function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, handleAction, selectedItems, setSelectedItems }: any) {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    const togglePlay = (e: React.MouseEvent) => {
+        // Prevent triggering toggle if clicking the Save/Schedule buttons
+        if ((e.target as HTMLElement).closest('button')) return;
+
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play().catch(console.error);
+            } else {
+                videoRef.current.pause();
+            }
+        } else {
+            // fallback for iframed content
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const isSelected = selectedItems.has(item.id);
+
+    return (
+        <div
+            className={`group relative bg-slate-900/50 border rounded-3xl overflow-hidden transition-all duration-300 ${isSelected ? 'border-purple-500 shadow-2xl shadow-purple-500/10' : 'border-white/5 hover:border-purple-500/40'}`}
+        >
+            <div className="absolute top-4 left-4 z-10">
+                <button
+                    onClick={() => {
+                        const next = new Set(selectedItems);
+                        if (next.has(item.id)) next.delete(item.id);
+                        else next.add(item.id);
+                        setSelectedItems(next);
+                    }}
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-purple-600 border-purple-500' : 'bg-black/50 border-white/20 hover:border-white/40'}`}
+                >
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                </button>
+            </div>
+
+            <div
+                className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`}
+                onClick={togglePlay}
+            >
+                {isContentVideo ? (
+                    <>
+                        {(item.fileUrl || content.fileUrl || content.filePath) && (
+                            (() => {
+                                const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
+                                const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
+                                const absoluteUrl = getMediaUrl(fileUrl);
+
+                                if (isYouTube) {
+                                    const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
+                                    return ytId ? (
+                                        <div className="absolute inset-0">
+                                            <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
+                                                <iframe
+                                                    width="100%"
+                                                    height="100%"
+                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=0&rel=0&modestbranding=1`}
+                                                    frameBorder="0"
+                                                    className="w-full h-full"
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : null;
+                                }
+
+                                return (
+                                    <video
+                                        ref={videoRef}
+                                        src={`${absoluteUrl}#t=${item.startTime},${item.endTime}`}
+                                        className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"
+                                        muted
+                                        autoPlay
+                                        playsInline
+                                        onPlay={() => setIsPlaying(true)}
+                                        onPause={() => setIsPlaying(false)}
+                                        onEnded={(e) => {
+                                            const v = e.currentTarget;
+                                            v.currentTime = item.startTime || 0;
+                                            v.play().catch(console.error);
+                                        }}
+                                        onTimeUpdate={(e) => {
+                                            const v = e.currentTarget;
+                                            // Manual loop fallback for fragments
+                                            if (item.endTime && v.currentTime >= item.endTime) {
+                                                v.currentTime = item.startTime || 0;
+                                                v.play().catch(console.error);
+                                            }
+                                        }}
+                                    />
+                                );
+                            })()
+                        )}
+
+                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-[2] transition-all pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
+                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition duration-500">
+                                <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                            </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-6 z-[2] pointer-events-none">
+                            <h3 className="font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
+                            <div className="flex gap-2">
+                                <span className="text-[9px] font-black bg-purple-600 px-2 py-0.5 rounded uppercase">{videoConfig.aspectRatio}</span>
+                                <span className="text-[9px] font-black bg-blue-600 px-2 py-0.5 rounded uppercase">Subtitles</span>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="w-full h-full bg-white p-8 group-hover:scale-105 transition duration-500 flex flex-col">
+                        <FileText className="w-12 h-12 text-slate-200 absolute -top-2 -right-2 transform rotate-12" />
+                        <h3 className="text-slate-900 font-bold text-xl mb-4 relative z-10">{item.title}</h3>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="text-slate-500 text-xs leading-relaxed">{item.content}</p>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                            <span className="text-[9px] font-black bg-slate-100 text-slate-400 px-2 py-0.5 rounded uppercase">AI Draft</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="p-2 grid grid-cols-3 gap-1 bg-black/40 border-t border-white/5 relative z-10">
+                <button onClick={() => handleAction(item, "schedule")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
+                    <Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400" />
+                    <span className="text-[9px] font-black text-gray-600 uppercase">Schedule</span>
+                </button>
+                <button onClick={() => handleAction(item, "broadcast")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
+                    <Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400" />
+                    <span className="text-[9px] font-black text-gray-600 uppercase">Post</span>
+                </button>
+                <button onClick={() => handleAction(item, "download")} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-xl transition group/btn">
+                    <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" />
+                    <span className="text-[9px] font-black text-gray-600 uppercase">Save</span>
+                </button>
+            </div>
         </div>
     );
 }
