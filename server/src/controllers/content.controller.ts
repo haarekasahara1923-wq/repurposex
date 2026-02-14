@@ -219,9 +219,20 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
         } else {
             // Read text file from local filesystem
             try {
-                textToAnalyze = await fs.readFile(content.fileUrl, 'utf-8');
+                let fsPath = content.fileUrl;
+                if (fsPath.startsWith('/uploads')) {
+                    const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
+                    fsPath = path.join(uploadDir, fsPath.substring(8));
+                } else if (!fsPath.startsWith('/tmp') && !fsPath.startsWith('C:') && !fsPath.startsWith('/')) {
+                    // It's a relative path, assume in uploads
+                    const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
+                    fsPath = path.join(uploadDir, fsPath);
+                }
+
+                console.log(`Analyzing file at: ${fsPath}`);
+                textToAnalyze = await fs.readFile(fsPath, 'utf-8');
             } catch (err) {
-                console.warn(`Failed to read file at ${content.fileUrl}, using metadata instead.`);
+                console.warn(`Failed to read file at ${content.fileUrl}, using metadata instead:`, err);
                 textToAnalyze = `Title: ${content.title}\nDescription: ${content.description || ''}`;
             }
         }

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
 // API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

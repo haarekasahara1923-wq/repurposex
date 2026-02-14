@@ -13,12 +13,15 @@ const router = Router();
 // Configure multer to use /tmp on Vercel (read-only filesystem fix)
 const uploadDir = process.env.VERCEL ? '/tmp/uploads' : 'uploads/';
 
-// Ensure directory exists (only if not on Vercel, as /tmp is managed by the OS)
-if (!process.env.VERCEL) {
-    const fs = require('fs');
+// Ensure directory exists
+const fs = require('fs');
+try {
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
+        console.log(`Created upload directory: ${uploadDir}`);
     }
+} catch (err) {
+    console.error(`Failed to create upload directory ${uploadDir}:`, err);
 }
 
 const upload = multer({

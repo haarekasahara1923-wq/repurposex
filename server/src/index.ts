@@ -65,7 +65,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Body parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Static files mapping
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadDir));
+
+// Fallback for /tmp/uploads directly in DB (Vercel specific)
+if (process.env.VERCEL) {
+    app.use('/tmp/uploads', express.static('/tmp/uploads'));
+}
 
 // Logging
 app.use((req: Request, res: Response, next: NextFunction) => {

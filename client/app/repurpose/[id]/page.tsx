@@ -24,7 +24,7 @@ import {
     CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { contentAPI } from "@/lib/api";
+import { contentAPI, API_BASE_URL } from "@/lib/api";
 import type { ContentAsset } from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -238,10 +238,17 @@ export default function RepurposePage() {
 
                 // Handle legacy filesystem paths (C:\tmp\uploads\file or /tmp/uploads/file)
                 const filename = url.split(/[\\/]/).pop();
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+                const baseUrl = API_BASE_URL;
+
+                // If it's an absolute path that starts with /tmp/uploads (Vercel)
+                if (url.startsWith("/tmp/uploads")) {
+                    return `${baseUrl}${url}`;
+                }
 
                 // If it was already a relative path starting with /api or /uploads, it's fine
-                if (url.startsWith("/api") || url.startsWith("/uploads")) return `${baseUrl}${url}`;
+                if (url.startsWith("/api") || url.startsWith("/uploads")) {
+                    return `${baseUrl}${url}`;
+                }
 
                 // Fallback: assume it's in the /uploads folder
                 return `${baseUrl}/uploads/${filename}`;
