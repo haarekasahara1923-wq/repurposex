@@ -25,7 +25,7 @@ import {
     Video
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { contentAPI, API_BASE_URL } from "@/lib/api";
+import { contentAPI, repurposeAPI, API_BASE_URL } from "@/lib/api";
 import type { ContentAsset } from "@/lib/api";
 import toast from "react-hot-toast";
 
