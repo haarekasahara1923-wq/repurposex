@@ -22,7 +22,8 @@ import {
     Files,
     Layout,
     CheckCircle2,
-    Video
+    Video,
+    Link as LinkIcon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { contentAPI, repurposeAPI, API_BASE_URL } from "@/lib/api";
@@ -321,10 +322,18 @@ export default function RepurposePage() {
                 }
 
                 if (fileUrl?.includes("youtube.com") || fileUrl?.includes("youtu.be")) {
-                    toast.error("YouTube content cannot be downloaded directly. Use Share or Schedule.", {
-                        duration: 5000,
-                        icon: '⚠️'
-                    });
+                    // COPY LINK INSTEAD OF ERROR
+                    const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
+                    if (ytId) {
+                        const embedUrl = `https://youtu.be/${ytId}?t=${Math.floor(item.startTime || 0)}`;
+                        await navigator.clipboard.writeText(embedUrl);
+                        toast.success("YouTube Clip Link Copied! (Direct download not supported via browser)", {
+                            duration: 4000,
+                            icon: '🔗'
+                        });
+                    } else {
+                        toast.error("Could not generate link for this clip.");
+                    }
                     return;
                 }
 
@@ -746,7 +755,14 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
             <div className="p-1 grid grid-cols-3 gap-1 bg-black/60 border-t border-white/5 relative z-20 backdrop-blur-md">
                 <button onClick={(e) => { e.stopPropagation(); handleAction(item, "schedule"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn"><Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400" /><span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Schedule</span></button>
                 <button onClick={(e) => { e.stopPropagation(); handleAction(item, "broadcast"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn"><Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400" /><span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Post</span></button>
-                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "download"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn"><Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" /><span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Save</span></button>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "download"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
+                    {ytId ? (
+                        <LinkIcon className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" />
+                    ) : (
+                        <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" />
+                    )}
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">{ytId ? "Link" : "Save"}</span>
+                </button>
             </div>
         </div>
     );
