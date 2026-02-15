@@ -29,7 +29,7 @@ import { contentAPI, repurposeAPI, API_BASE_URL } from "@/lib/api";
 import type { ContentAsset } from "@/lib/api";
 import toast from "react-hot-toast";
 
-// Static Data - Defined outside to avoid re-initialization and TDZ issues
+// Static Data
 const ASPECT_RATIOS = [
     { id: "9:16", label: "9:16", icon: Smartphone },
     { id: "1:1", label: "1:1", icon: Grid2x2 },
@@ -48,7 +48,7 @@ const ASPECT_CLASS_MAP: Record<string, string> = {
     "9:16": "aspect-[9/16]",
     "1:1": "aspect-square",
     "16:9": "aspect-video",
-    "twitter": "aspect-[1.20/1]" // Twitter/X preferred ratio
+    "twitter": "aspect-[1.20/1]"
 };
 
 type AspectRatio = typeof ASPECT_RATIOS[number]["id"];
@@ -107,7 +107,7 @@ export default function RepurposePage() {
         enhance: true
     });
 
-    // Detect if content is video (YouTube or Uploaded)
+    // Detect if content is video
     const isContentVideo = useMemo(() => {
         if (!content) return false;
         const typeStr = String(content.type || "").toLowerCase();
@@ -121,7 +121,7 @@ export default function RepurposePage() {
             mimeStr.startsWith("video/") ||
             urlStr.includes("youtube.com") ||
             urlStr.includes("youtu.be") ||
-            urlStr.includes("/video/upload/") || // Cloudinary video pattern
+            urlStr.includes("/video/upload/") ||
             urlStr.endsWith(".mp4") ||
             urlStr.endsWith(".mov") ||
             urlStr.endsWith(".webm") ||
@@ -150,17 +150,13 @@ export default function RepurposePage() {
 
         const baseUrl = API_BASE_URL;
 
-        // Handle leading slash
         if (url.startsWith("/")) {
-            // If it already starts with /api or /uploads, just prepend baseUrl
             if (url.startsWith("/api") || url.startsWith("/uploads") || url.startsWith("/tmp/uploads")) {
                 return `${baseUrl}${url}`;
             }
-            // Otherwise, it might be an absolute path from backend that needs mapping
             return `${baseUrl}${url}`;
         }
 
-        // Fallback: assume it's a relative path to uploads
         return `${baseUrl}/uploads/${url}`;
     };
 
@@ -205,7 +201,6 @@ export default function RepurposePage() {
                 body = `# ${hook}\n\n${snippet}\n\nGenerated for ${docConfig.style} from "${content.title}".`;
             }
 
-            // Ensure start and end times are within duration
             const clipDuration = 10;
             const startTime = Math.min((i - 1) * 20, Math.max(0, duration - clipDuration));
             const endTime = Math.min(startTime + clipDuration, duration);
@@ -226,7 +221,7 @@ export default function RepurposePage() {
             });
         }
         setGeneratedItems(items);
-        setSelectedItems(new Set(items.map(i => i.id))); // Select all by default
+        setSelectedItems(new Set(items.map(i => i.id)));
         toast.success("Repurposing complete!");
     };
 
@@ -235,12 +230,11 @@ export default function RepurposePage() {
         setProcessingProgress(0);
 
         try {
-            // Start real backend job
             const jobType = isContentVideo ? "video_to_shorts" : docConfig.style;
             const job = await repurposeAPI.create({
                 contentId: id,
                 outputType: jobType,
-                tone: 'professional', // Default tone
+                tone: 'professional',
                 config: isContentVideo
                     ? { numShorts: videoConfig.numShorts, aspectRatio: videoConfig.aspectRatio }
                     : { numPieces: docConfig.numPieces, style: docConfig.style }
@@ -248,23 +242,19 @@ export default function RepurposePage() {
 
             console.log("Job created:", job);
 
-            // Poll for results
             let attempts = 0;
-            const maxAttempts = 30; // 30 * 2s = 60s max
+            const maxAttempts = 30;
 
             const pollInterval = setInterval(async () => {
                 attempts++;
-                setProcessingProgress(Math.min(90, attempts * 3)); // Visual progress
+                setProcessingProgress(Math.min(90, attempts * 3));
 
                 try {
                     const status = await repurposeAPI.getJob(job.id);
-                    console.log("Job status:", status);
-
                     if (status.status === 'completed') {
                         clearInterval(pollInterval);
                         setProcessingProgress(100);
 
-                        // Transform real results to GeneratedItem format
                         const results = (status as any).generatedContent || [];
                         if (results.length > 0) {
                             const realItems = results.map((r: any, idx: number) => ({
@@ -281,7 +271,6 @@ export default function RepurposePage() {
                             setGeneratedItems(realItems);
                             setSelectedItems(new Set(realItems.map((i: any) => i.id)));
                         } else {
-                            // Fallback to mock if result format is unexpected
                             generateMockResults();
                         }
 
@@ -298,7 +287,7 @@ export default function RepurposePage() {
 
                 if (attempts >= maxAttempts) {
                     clearInterval(pollInterval);
-                    generateMockResults(); // Fallback to mock
+                    generateMockResults();
                     setStep("results");
                     toast("Using smart-mock generation (AI is taking too long)");
                 }
@@ -306,7 +295,6 @@ export default function RepurposePage() {
 
         } catch (error) {
             console.error("Failed to start job:", error);
-            // Fallback to mock if API fails
             const interval = setInterval(() => {
                 setProcessingProgress((prev) => {
                     if (prev >= 100) {
@@ -325,14 +313,15 @@ export default function RepurposePage() {
         if (action === "download") {
             try {
                 const fileUrl = item.fileUrl || (isContentVideo ? (content?.fileUrl || content?.filePath) : "");
-                if (!fileUrl) {
-                    toast.error("File URL not found");
+                const absoluteUrl = getMediaUrl(fileUrl || "");
+
+                if (!fileUrl && isContentVideo) {
+                    toast.error("Media source not found");
                     return;
                 }
 
-                // YouTube URLs cannot be directly downloaded from the browser
-                if (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be")) {
-                    toast.error("YouTube clips can only be shared/scheduled. Direct download is not available for simulated fragments.", {
+                if (fileUrl?.includes("youtube.com") || fileUrl?.includes("youtu.be")) {
+                    toast.error("YouTube content cannot be downloaded directly. Use Share or Schedule.", {
                         duration: 5000,
                         icon: '⚠️'
                     });
@@ -340,37 +329,44 @@ export default function RepurposePage() {
                 }
 
                 toast.loading("Preparing download...", { id: "download" });
-                const absoluteUrl = getMediaUrl(fileUrl);
 
-                // For local files, attempt a robust fetch/blob download
-                try {
-                    const response = await fetch(absoluteUrl);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const blob = await response.blob();
+                if (isContentVideo) {
+                    try {
+                        const response = await fetch(absoluteUrl);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+
+                        const link = document.createElement("a");
+                        link.href = blobUrl;
+                        link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(blobUrl);
+                            document.body.removeChild(link);
+                        }, 1000);
+
+                        toast.success("Download started!", { id: "download" });
+                    } catch (fetchError) {
+                        console.error("Fetch download failed:", fetchError);
+                        const link = document.createElement("a");
+                        link.href = absoluteUrl;
+                        link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
+                        link.click();
+                        toast.success("Download initiated", { id: "download" });
+                    }
+                } else {
+                    const blob = new Blob([item.content || item.description], { type: "text/plain" });
                     const blobUrl = window.URL.createObjectURL(blob);
-
                     const link = document.createElement("a");
                     link.href = blobUrl;
-                    link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
+                    link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`);
                     link.click();
-
-                    // Cleanup
-                    setTimeout(() => {
-                        window.URL.revokeObjectURL(blobUrl);
-                        document.body.removeChild(link);
-                    }, 500);
-
-                    toast.success("Download started!", { id: "download" });
-                } catch (fetchError) {
-                    console.error("Fetch download failed:", fetchError);
-                    // Final fallback - direct link without target blink to avoid navigation issues in some browsers
-                    const link = document.createElement("a");
-                    link.href = absoluteUrl;
-                    link.setAttribute("download", `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`);
-                    link.click();
-                    toast.success("Download initiated", { id: "download" });
+                    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+                    toast.success("Text clip saved!", { id: "download" });
                 }
             } catch (error) {
                 console.error("Download failed:", error);
@@ -394,8 +390,6 @@ export default function RepurposePage() {
         const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
 
         if (isContentVideo || isYouTube) {
-            const cleanUrl = getMediaUrl;
-
             if (isYouTube) {
                 const videoIdMatch = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/);
                 const videoId = videoIdMatch?.[1];
@@ -407,7 +401,6 @@ export default function RepurposePage() {
                                 width="100%"
                                 height="100%"
                                 src={`https://www.youtube.com/embed/${videoId}`}
-                                title="YouTube video player"
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
@@ -417,24 +410,15 @@ export default function RepurposePage() {
                     );
                 }
 
-                // If we know it's YouTube but didn't find an ID, don't fall through to <video>
                 return (
                     <div className="w-full aspect-video bg-slate-900 rounded-xl flex flex-col items-center justify-center border border-white/5">
                         <Video className="w-12 h-12 text-gray-600 mb-4" />
-                        <p className="text-gray-400 font-medium font-outfit">YouTube Video Detected</p>
-                        <Link
-                            href={fileUrl}
-                            target="_blank"
-                            className="text-purple-400 text-xs mt-2 hover:underline inline-flex items-center gap-1"
-                        >
-                            View on YouTube <Sparkles className="w-3 h-3" />
-                        </Link>
+                        <p className="text-gray-400 font-medium">YouTube Video Detected</p>
                     </div>
                 );
             }
 
-            // Real video tag for direct uploads
-            const videoSrc = cleanUrl(fileUrl);
+            const videoSrc = getMediaUrl(fileUrl);
             if (videoSrc) {
                 return (
                     <div className="w-full aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
@@ -443,49 +427,29 @@ export default function RepurposePage() {
                             controls
                             className="w-full h-full object-contain"
                             poster={content.analysis?.thumbnailUrl}
-                            onError={(e) => {
-                                console.error("Video element failed to load:", videoSrc);
-                                // Fallback to placeholder UI on error
-                                const target = e.currentTarget;
-                                target.classList.add('hidden');
-                                if (target.parentElement) {
-                                    const fallback = document.createElement('div');
-                                    fallback.className = "flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center";
-                                    fallback.innerHTML = `<svg class="w-12 h-12 mb-4 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p class="text-xs">Media unavailable on this device.</p>`;
-                                    target.parentElement.appendChild(fallback);
-                                }
-                            }}
                         />
                     </div>
                 );
             }
 
-            // Placeholder with better UI
             return (
                 <div className="w-full aspect-video bg-slate-900 rounded-xl flex flex-col items-center justify-center border border-white/5">
-                    <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-4">
-                        <Play className="w-8 h-8 text-purple-400 fill-purple-400" />
-                    </div>
-                    <p className="text-gray-400 font-medium font-outfit">Video Preview Ready</p>
-                    <p className="text-gray-600 text-xs mt-1">{content.title}</p>
+                    <Play className="w-12 h-12 text-purple-400 fill-purple-400 mb-4" />
+                    <p className="text-gray-400 font-medium">Video Preview Ready</p>
                 </div>
             );
         }
 
-        // Document Preview
         return (
             <div className="w-full min-h-[400px] bg-white text-slate-800 p-8 rounded-xl shadow-2xl relative flex flex-col border border-slate-200">
                 <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-blue-600" />
-                    </div>
+                    <FileText className="w-6 h-6 text-blue-600" />
                     <div>
                         <h3 className="font-bold text-lg text-slate-900">{content.title}</h3>
                         <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Source Document</p>
                     </div>
                 </div>
-
-                <div className="flex-1 overflow-auto max-h-[250px] mb-4 custom-scrollbar">
+                <div className="flex-1 overflow-auto max-h-[250px] mb-4">
                     {content.analysis?.transcript ? (
                         <p className="text-sm text-slate-600 leading-relaxed italic">
                             "{content.analysis.transcript.substring(0, 1000)}..."
@@ -505,12 +469,8 @@ export default function RepurposePage() {
     if (!mounted || loading) {
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-purple-600/20 rounded-full" />
-                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin absolute top-0" />
-                    <Sparkles className="w-6 h-6 text-purple-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-                </div>
-                <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-[10px] animate-pulse">Initializing Wizard</p>
+                <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
+                <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Loading Wizard</p>
             </div>
         );
     }
@@ -518,24 +478,15 @@ export default function RepurposePage() {
     if (!content) return null;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white font-outfit selection:bg-purple-500/30">
-            {/* Header */}
+        <div className="min-h-screen bg-slate-950 text-white selection:bg-purple-500/30">
             <nav className="bg-black/40 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="flex justify-between items-center h-20">
-                        <div className="flex items-center gap-6">
-                            <Link href="/content" className="p-2 hover:bg-white/5 rounded-full transition group">
-                                <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-white" />
-                            </Link>
-                            <div className="h-6 w-px bg-white/10" />
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="w-6 h-6 text-purple-400" />
-                                <span className="font-black text-lg tracking-tight uppercase">Repurpose Wizard</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black bg-white/5 px-3 py-1 rounded-full text-gray-500 uppercase tracking-widest">Alpha v1.0</span>
+                <div className="max-w-7xl mx-auto px-6 flex justify-between items-center h-20">
+                    <div className="flex items-center gap-6">
+                        <Link href="/content" className="p-2 hover:bg-white/5 rounded-full transition">
+                            <ArrowLeft className="w-5 h-5 text-gray-500" />
+                        </Link>
+                        <div className="flex items-center gap-2 text-purple-400 font-black uppercase text-sm tracking-widest">
+                            <Sparkles className="w-5 h-5" /> Repurpose Wizard
                         </div>
                     </div>
                 </div>
@@ -544,208 +495,97 @@ export default function RepurposePage() {
             <main className="max-w-7xl mx-auto px-6 py-12">
                 {step === "configure" && (
                     <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                        <header className="mb-12">
-                            <h1 className="text-4xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                Magic Repurposer
-                            </h1>
-                            <p className="text-purple-400/80 font-medium">Transforming: {content.title}</p>
-                        </header>
-
-                        <div className="grid lg:grid-cols-2 gap-10 items-start">
-                            {/* Left: Preview */}
-                            <section className="space-y-6">
-                                {renderPreview()}
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
-                                        Content Verified
-                                    </h3>
-                                    <p className="text-sm text-gray-400">
-                                        Our AI has analyzed the {isContentVideo ? 'video' : 'document'} and is ready to generate high-engagement clips.
-                                    </p>
-                                </div>
-                            </section>
-
-                            {/* Right: Settings */}
+                        <h1 className="text-4xl font-black mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Magic Configuration</h1>
+                        <div className="grid lg:grid-cols-2 gap-10">
+                            <section className="space-y-6">{renderPreview()}</section>
                             <section className="bg-slate-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-md">
                                 {isContentVideo ? (
-                                    <div className="space-y-10">
+                                    <div className="space-y-8">
                                         <div>
-                                            <label className="text-lg font-bold flex items-center gap-2 mb-6">
-                                                <Scissors className="w-5 h-5 text-purple-400" />
-                                                Video Clips
-                                            </label>
-                                            <div className="grid grid-cols-3 gap-4">
+                                            <label className="text-lg font-bold flex items-center gap-2 mb-4"><Scissors className="w-5 h-5 text-purple-400" /> Video Clips</label>
+                                            <div className="grid grid-cols-3 gap-3">
                                                 {[3, 6, 12].map(num => (
-                                                    <button
-                                                        key={num}
-                                                        onClick={() => setVideoConfig(v => ({ ...v, numShorts: num as 3 | 6 | 12 }))}
-                                                        className={`py-4 rounded-2xl border-2 transition-all ${videoConfig.numShorts === num
-                                                            ? "bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-500/20"
-                                                            : "bg-black/40 border-slate-800 text-gray-500 hover:border-purple-500/30"}`}
-                                                    >
-                                                        <span className="block text-xl font-black">{num}</span>
-                                                        <span className="text-[10px] uppercase font-bold tracking-widest">Shorts</span>
-                                                    </button>
+                                                    <button key={num} onClick={() => setVideoConfig(v => ({ ...v, numShorts: num as 3 | 6 | 12 }))} className={`py-4 rounded-xl border-2 transition-all font-black text-lg ${videoConfig.numShorts === num ? 'bg-purple-600 border-purple-400 shadow-lg shadow-purple-500/20' : 'bg-black/40 border-slate-800 text-gray-500 hover:border-purple-500/30'}`}>{num}</button>
                                                 ))}
                                             </div>
                                         </div>
-
                                         <div>
-                                            <label className="text-lg font-bold flex items-center gap-2 mb-6">
-                                                <Layout className="w-5 h-5 text-pink-400" />
-                                                Output Aspect Ratio
-                                            </label>
+                                            <label className="text-lg font-bold flex items-center gap-2 mb-4"><Layout className="w-5 h-5 text-pink-400" /> Aspect Ratio</label>
                                             <div className="grid grid-cols-4 gap-3">
                                                 {ASPECT_RATIOS.map(ratio => {
                                                     const Icon = ratio.icon;
                                                     return (
-                                                        <button
-                                                            key={ratio.id}
-                                                            onClick={() => setVideoConfig(v => ({ ...v, aspectRatio: ratio.id }))}
-                                                            className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${videoConfig.aspectRatio === ratio.id
-                                                                ? "bg-pink-600/20 border-pink-500 text-white"
-                                                                : "bg-black/20 border-slate-800 text-gray-500 hover:border-pink-500/30"}`}
-                                                        >
-                                                            <Icon className="w-5 h-5" />
-                                                            <span className="text-[10px] font-black uppercase tracking-tighter">{ratio.label}</span>
+                                                        <button key={ratio.id} onClick={() => setVideoConfig(v => ({ ...v, aspectRatio: ratio.id }))} className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${videoConfig.aspectRatio === ratio.id ? "bg-pink-600/20 border-pink-500 text-white" : "bg-black/20 border-slate-800 text-gray-500 hover:border-pink-500/30"}`}>
+                                                            <Icon className="w-5 h-5" /><span className="text-[10px] font-black uppercase">{ratio.label}</span>
                                                         </button>
                                                     );
                                                 })}
                                             </div>
                                         </div>
-
                                         <div className="p-5 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400">
-                                                    <Type className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold">AI Dynamic Captions</p>
-                                                    <p className="text-[10px] text-gray-500 uppercase font-black">Viral Style Text</p>
-                                                </div>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={videoConfig.aiCaptions}
-                                                    onChange={e => setVideoConfig(v => ({ ...v, aiCaptions: e.target.checked }))}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                            </label>
+                                            <div className="flex items-center gap-4"><Type className="w-5 h-5 text-blue-400" /><div><p className="font-bold">AI Dynamic Captions</p><p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Viral Styled</p></div></div>
+                                            <input type="checkbox" checked={videoConfig.aiCaptions} onChange={e => setVideoConfig(v => ({ ...v, aiCaptions: e.target.checked }))} className="w-10 h-5 rounded-full appearance-none bg-slate-700 checked:bg-purple-600 cursor-pointer transition-all relative after:content-[''] after:absolute after:w-4 after:h-4 after:bg-white after:rounded-full after:left-0.5 after:top-0.5 checked:after:left-5.5 after:transition-all" />
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-10">
+                                    <div className="space-y-8">
                                         <div>
-                                            <label className="text-lg font-bold flex items-center gap-2 mb-6">
-                                                <Files className="w-5 h-5 text-pink-400" />
-                                                Content Pieces
-                                            </label>
-                                            <div className="grid grid-cols-4 gap-4">
+                                            <label className="text-lg font-bold flex items-center gap-2 mb-4"><Files className="w-5 h-5 text-pink-400" /> Content Pieces</label>
+                                            <div className="grid grid-cols-4 gap-3">
                                                 {[2, 4, 6, 8].map(num => (
-                                                    <button
-                                                        key={num}
-                                                        onClick={() => setDocConfig(d => ({ ...d, numPieces: num as 2 | 4 | 6 | 8 }))}
-                                                        className={`py-4 rounded-xl border-2 transition-all ${docConfig.numPieces === num
-                                                            ? "bg-pink-600 border-pink-400 text-white"
-                                                            : "bg-black/40 border-slate-800 text-gray-500 hover:border-pink-500/30"}`}
-                                                    >
-                                                        <span className="text-xl font-black">{num}</span>
-                                                    </button>
+                                                    <button key={num} onClick={() => setDocConfig(d => ({ ...d, numPieces: num as 2 | 4 | 6 | 8 }))} className={`py-4 rounded-xl border-2 transition-all font-black text-lg ${docConfig.numPieces === num ? 'bg-pink-600 border-pink-400' : 'bg-black/40 border-slate-800 text-gray-500 hover:border-pink-500/30'}`}>{num}</button>
                                                 ))}
                                             </div>
                                         </div>
-
                                         <div>
-                                            <label className="text-lg font-bold flex items-center gap-2 mb-6">
-                                                <Wand2 className="w-5 h-5 text-purple-400" />
-                                                Generation Style
-                                            </label>
+                                            <label className="text-lg font-bold flex items-center gap-2 mb-4"><Wand2 className="w-5 h-5 text-purple-400" /> Output Style</label>
                                             <div className="grid grid-cols-2 gap-3">
                                                 {DOC_STYLES.map(style => (
-                                                    <button
-                                                        key={style.id}
-                                                        onClick={() => setDocConfig(d => ({ ...d, style: style.id }))}
-                                                        className={`py-4 rounded-xl border-2 transition-all text-sm font-bold ${docConfig.style === style.id
-                                                            ? "bg-purple-600/20 border-purple-500 text-white"
-                                                            : "bg-black/40 border-slate-800 text-gray-500 hover:border-purple-500/30"}`}
-                                                    >
-                                                        {style.label}
-                                                    </button>
+                                                    <button key={style.id} onClick={() => setDocConfig(d => ({ ...d, style: style.id }))} className={`py-3 rounded-xl border-2 transition-all font-bold text-sm ${docConfig.style === style.id ? 'bg-purple-600/20 border-purple-500' : 'bg-black/40 border-slate-800 text-gray-500'}`}>{style.label}</button>
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
                                 )}
-
-                                <button
-                                    onClick={startProcessing}
-                                    className="w-full mt-10 py-5 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-purple-500/25 flex items-center justify-center gap-3"
-                                >
-                                    <Wand2 className="w-6 h-6 animate-pulse" />
-                                    GENERATE MAGIC
-                                </button>
+                                <button onClick={startProcessing} className="w-full mt-10 py-5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-black text-lg shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3"><Wand2 className="w-6 h-6 animate-pulse" /> GENERATE CONTENT</button>
                             </section>
                         </div>
                     </div>
                 )}
 
                 {step === "processing" && (
-                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-in zoom-in duration-500">
-                        <div className="relative w-48 h-48 mb-10">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-900" />
-                                <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="8" fill="transparent"
-                                    strokeDasharray={552.92} strokeDashoffset={552.92 - (552.92 * processingProgress) / 100}
-                                    className="text-purple-500 transition-all duration-500" />
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-4xl font-black">{processingProgress}%</span>
-                                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1">Analyzing</span>
-                            </div>
+                    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+                        <div className="relative w-40 h-40 mb-8 flex items-center justify-center">
+                            <div className="absolute inset-0 border-4 border-white/5 rounded-full" />
+                            <div className="absolute inset-0 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-3xl font-black">{processingProgress}%</span>
                         </div>
-                        <h2 className="text-3xl font-black mb-4">Crafting Your Contents...</h2>
-                        <p className="text-gray-400 max-w-sm">Our AI is extracting viral hooks, reframing visuals, and optimizing for retention.</p>
+                        <h2 className="text-2xl font-black mb-2 tracking-tight">AI is crafting your pieces...</h2>
+                        <p className="text-gray-500">Extracting insights and optimizing for engagement.</p>
                     </div>
                 )}
 
                 {step === "results" && (
                     <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                        <header className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                             <div>
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="px-3 py-1 bg-green-500/20 text-green-400 text-[10px] font-black uppercase rounded-full border border-green-500/30">Success</div>
-                                    <h2 className="text-4xl font-black">AI Results</h2>
-                                </div>
-                                <p className="text-gray-400">Generated {generatedItems.length} magic pieces from "{content.title}"</p>
+                                <h1 className="text-4xl font-black mb-2">Generated Assets</h1>
+                                <p className="text-gray-400">Total {generatedItems.length} pieces ready for deployment.</p>
                             </div>
                             <div className="flex gap-4">
-                                <button onClick={() => setStep("configure")} className="px-6 py-3 bg-slate-900 border border-white/5 rounded-xl font-bold hover:bg-slate-800 transition">Adjust Settings</button>
+                                <button onClick={() => setStep("configure")} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition">Adjust Settings</button>
                                 <button
                                     onClick={() => {
                                         const selected = generatedItems.filter(i => selectedItems.has(i.id));
-                                        if (selected.length === 0) {
-                                            toast.error("Please select items to broadcast");
-                                            return;
-                                        }
-                                        const first = selected[0];
-                                        const params = new URLSearchParams({
-                                            title: first.title,
-                                            description: first.description || (first.content || ""),
-                                            broadcast: "true"
-                                        });
-                                        router.push(`/schedule?${params.toString()}`);
-                                        toast.success("Opening Broadcast Wizard for selected items!");
+                                        if (selected.length === 0) return toast.error("Select items first");
+                                        handleAction(selected[0], "broadcast");
                                     }}
-                                    className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-black shadow-lg shadow-purple-500/20 hover:scale-105 transition"
+                                    className="px-8 py-3 bg-purple-600 rounded-xl font-black shadow-lg shadow-purple-500/20 hover:scale-[1.05] transition-all"
                                 >
                                     BROADCAST ALL
                                 </button>
                             </div>
                         </header>
-
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                             {generatedItems.map((item) => (
                                 <ResultCard
@@ -768,24 +608,32 @@ export default function RepurposePage() {
     );
 }
 
-
-// Sub-component for individual result items to manage state locally
 function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, handleAction, selectedItems, setSelectedItems }: any) {
     const [isPlaying, setIsPlaying] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isYTActive, setIsYTActive] = useState(false);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (videoRef.current) {
+                const actualPlaying = !videoRef.current.paused && !videoRef.current.ended;
+                if (actualPlaying !== isPlaying) setIsPlaying(actualPlaying);
+            }
+        }, 400);
+        return () => clearInterval(interval);
+    }, [isPlaying]);
 
     const togglePlay = (e: React.MouseEvent) => {
         if ((e.target as HTMLElement).closest('button')) return;
 
         if (videoRef.current) {
             if (videoRef.current.paused) {
-                videoRef.current.play().catch(console.error);
+                videoRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
             } else {
                 videoRef.current.pause();
+                setIsPlaying(false);
             }
         } else {
-            // For YouTube
             setIsYTActive(true);
             setIsPlaying(true);
         }
@@ -794,139 +642,70 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
     const isSelected = selectedItems.has(item.id);
 
     return (
-        <div
-            className={`group relative bg-slate-900/50 border rounded-3xl overflow-hidden transition-all duration-300 ${isSelected ? 'border-purple-500 shadow-2xl shadow-purple-500/10' : 'border-white/5 hover:border-purple-500/40'}`}
-        >
-            {/* Selection Checkbox */}
+        <div className={`group relative bg-slate-900/50 border rounded-3xl overflow-hidden transition-all duration-300 ${isSelected ? 'border-purple-500 shadow-2xl' : 'border-white/5 hover:border-purple-500/40'}`}>
             <div className="absolute top-4 left-4 z-20">
                 <button
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         const next = new Set(selectedItems);
                         if (next.has(item.id)) next.delete(item.id);
                         else next.add(item.id);
                         setSelectedItems(next);
                     }}
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-purple-600 border-purple-500' : 'bg-black/50 border-white/20 hover:border-white/40'}`}
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-purple-600 border-purple-500' : 'bg-black/50 border-white/20'}`}
                 >
                     {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
                 </button>
             </div>
 
-            {/* Media Content */}
-            <div
-                className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`}
-                onClick={togglePlay}
-            >
+            <div className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`} onClick={togglePlay}>
                 {isContentVideo ? (
                     <>
-                        {(item.fileUrl || content.fileUrl || content.filePath) && (
-                            (() => {
-                                const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
-                                const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
-                                const absoluteUrl = getMediaUrl(fileUrl);
+                        {(() => {
+                            const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
+                            const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
+                            const absoluteUrl = getMediaUrl(fileUrl);
 
-                                if (isYouTube) {
-                                    const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
-                                    return ytId ? (
-                                        <div className="absolute inset-0 bg-black">
-                                            <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
-                                                <iframe
-                                                    width="100%"
-                                                    height="100%"
-                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`}
-                                                    frameBorder="0"
-                                                    className={`w-full h-full transition-opacity duration-500 ${isYTActive ? 'opacity-100' : 'opacity-40'}`}
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                />
-                                            </div>
+                            if (isYouTube) {
+                                const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
+                                return ytId ? (
+                                    <div className="absolute inset-0 bg-black">
+                                        <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
+                                            <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`} frameBorder="0" className={`w-full h-full transition-opacity duration-700 ${isYTActive ? 'opacity-100' : 'opacity-40'}`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
                                         </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-full bg-slate-900 p-6 text-center">
-                                            <Video className="w-12 h-12 text-slate-700 mb-2" />
-                                            <p className="text-xs text-slate-500">YouTube link verification failed</p>
-                                        </div>
-                                    );
-                                }
+                                    </div>
+                                ) : <div className="p-6 text-center text-xs text-slate-500"><Video className="w-12 h-12 mb-2 opacity-20 mx-auto" /> Link broken</div>;
+                            }
 
-                                return (
-                                    <video
-                                        ref={videoRef}
-                                        src={`${absoluteUrl}#t=${item.startTime || 0},${item.endTime || 10}`}
-                                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-                                        style={{ opacity: isPlaying ? 1 : 0.6 }}
-                                        muted
-                                        autoPlay
-                                        playsInline
-                                        onPlay={() => setIsPlaying(true)}
-                                        onPause={() => setIsPlaying(false)}
-                                        onEnded={(e) => {
-                                            const v = e.currentTarget;
-                                            v.currentTime = item.startTime || 0;
-                                            v.play().catch(() => setIsPlaying(false));
-                                        }}
-                                        onTimeUpdate={(e) => {
-                                            const v = e.currentTarget;
-                                            // Robust looping for fragments
-                                            const end = item.endTime || v.duration;
-                                            if (end > 0 && v.currentTime >= end) {
-                                                v.currentTime = item.startTime || 0;
-                                                v.play().catch(() => setIsPlaying(false));
-                                            }
-                                        }}
-                                    />
-                                );
-                            })()
-                        )}
+                            return (
+                                <video ref={videoRef} src={`${absoluteUrl}#t=${item.startTime || 0},${item.endTime || 10}`} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700" style={{ opacity: isPlaying ? 1 : 0.6 }} muted autoPlay playsInline onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} onEnded={() => { if (videoRef.current) { videoRef.current.currentTime = item.startTime || 0; videoRef.current.play(); } }} onTimeUpdate={() => { const v = videoRef.current; if (v && item.endTime && v.currentTime >= (item.endTime - 0.2)) { v.currentTime = item.startTime || 0; v.play(); } }} />
+                            );
+                        })()}
 
-                        {/* Overlay Play Button */}
-                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100 group-hover:bg-black/20'}`}>
-                            <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 group-hover:scale-110 transition duration-500 shadow-2xl">
-                                <Play className="w-8 h-8 text-white fill-white ml-1" />
-                            </div>
+                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-500 pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
+                            <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition duration-500"><Play className="w-8 h-8 text-white fill-white ml-1" /></div>
                         </div>
 
-                        {/* Video Info Gradient Overlay */}
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent z-[5] pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity" />
-
-                        <div className="absolute bottom-0 left-0 right-0 p-5 z-10 pointer-events-none">
-                            <h3 className="font-bold text-white text-sm mb-2 line-clamp-1 drop-shadow-lg">{item.title}</h3>
-                            <div className="flex gap-2">
-                                <span className="text-[10px] font-black bg-purple-600/90 text-white px-2 py-0.5 rounded shadow-sm border border-purple-400/30 uppercase tracking-tighter">{videoConfig.aspectRatio}</span>
-                                <span className="text-[10px] font-black bg-blue-600/90 text-white px-2 py-0.5 rounded shadow-sm border border-blue-400/30 uppercase tracking-tighter">AI Ready</span>
-                            </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-5 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                            <h3 className="font-bold text-white text-sm mb-2 line-clamp-1">{item.title}</h3>
+                            <div className="flex gap-2"><span className="text-[10px] font-black bg-purple-600/90 px-2 py-0.5 rounded border border-purple-400/30 uppercase tracking-tighter">{videoConfig.aspectRatio}</span><span className="text-[10px] font-black bg-blue-600/90 px-2 py-0.5 rounded border border-blue-400/30 uppercase tracking-tighter">AI READY</span></div>
                         </div>
                     </>
                 ) : (
                     <div className="w-full h-full bg-white p-8 group-hover:bg-slate-50 transition-colors duration-500 flex flex-col">
                         <FileText className="w-10 h-10 text-slate-100 absolute -top-1 -right-1 transform rotate-12" />
-                        <h3 className="text-slate-900 font-bold text-lg mb-4 relative z-10 line-clamp-2">{item.title}</h3>
-                        <div className="flex-1 overflow-hidden relative">
-                            <p className="text-slate-500 text-xs leading-relaxed">{item.content}</p>
-                            <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-white to-transparent" />
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-tighter">Text Clip</span>
-                        </div>
+                        <h3 className="text-slate-900 font-bold text-lg mb-4 line-clamp-2">{item.title}</h3>
+                        <div className="flex-1 overflow-hidden relative text-slate-500 text-xs leading-relaxed"><p>{item.content}</p><div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-white to-transparent" /></div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2"><span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-tighter">TEXT CLIPPED</span></div>
                     </div>
                 )}
             </div>
 
-            {/* Bottom Actions */}
             <div className="p-1 grid grid-cols-3 gap-1 bg-black/60 border-t border-white/5 relative z-20 backdrop-blur-md">
-                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "schedule"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
-                    <Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400 transition-colors" />
-                    <span className="text-[10px] font-black text-gray-500 group-hover/btn:text-gray-300 uppercase tracking-tighter">Schedule</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "broadcast"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
-                    <Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400 transition-colors" />
-                    <span className="text-[10px] font-black text-gray-500 group-hover/btn:text-gray-300 uppercase tracking-tighter">Post</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "download"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn">
-                    <Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400 transition-colors" />
-                    <span className="text-[10px] font-black text-gray-500 group-hover/btn:text-gray-300 uppercase tracking-tighter">Save</span>
-                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "schedule"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn"><Calendar className="w-4 h-4 text-gray-500 group-hover/btn:text-blue-400" /><span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Schedule</span></button>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "broadcast"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn"><Share2 className="w-4 h-4 text-gray-500 group-hover/btn:text-green-400" /><span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Post</span></button>
+                <button onClick={(e) => { e.stopPropagation(); handleAction(item, "download"); }} className="py-3 flex flex-col items-center gap-1 hover:bg-white/5 rounded-2xl transition group/btn"><Download className="w-4 h-4 text-gray-500 group-hover/btn:text-purple-400" /><span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Save</span></button>
             </div>
         </div>
     );
 }
-
