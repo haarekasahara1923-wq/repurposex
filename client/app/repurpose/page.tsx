@@ -750,39 +750,33 @@ function getYoutubeId(url: string | null) {
 
 // Sub-component for individual result items to manage state locally
 function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, selectedItems, setSelectedItems }: any) {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isYTActive, setIsYTActive] = useState(false);
+    const [isLocalPlaying, setIsLocalPlaying] = useState(false);
+    const [showYTIframe, setShowYTIframe] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const ytId = getYoutubeId(videoUrl);
 
-    const togglePlay = (e: React.MouseEvent) => {
+    // Toggle for Local Video
+    const toggleLocalPlay = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
-        console.log("🖱️ [ResultCard] Toggle Play Clicked", { id: item.id, currentIsPlaying: isPlaying, isYTActive });
-
-        // Prevent trigger if clicking on buttons or checkboxes
-        if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) {
-            return;
-        }
-
         if (videoRef.current) {
             if (videoRef.current.paused) {
-                videoRef.current.play().catch(err => console.error("❌ [ResultCard] Play Error:", err));
+                videoRef.current.play().catch(err => console.error("Play error:", err));
+                setIsLocalPlaying(true);
             } else {
                 videoRef.current.pause();
+                setIsLocalPlaying(false);
             }
-        } else {
-            // For YouTube
-            console.log("▶️ [ResultCard] Activating YouTube");
-            setIsYTActive(true);
-            setIsPlaying(true);
         }
     };
 
-    // Debug Logger
-    useEffect(() => {
-        console.log("🔄 [ResultCard] State Update:", { id: item.id, isPlaying, isYTActive });
-    }, [isPlaying, isYTActive, item.id]);
+    // Toggle for YouTube (Swap Thumbnail -> Iframe)
+    const activateYouTube = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowYTIframe(true);
+    };
 
     const isSelected = selectedItems.has(item.id);
 
@@ -810,104 +804,72 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
             </div>
 
             {/* Media Container */}
-            <div
-                className={`${contentType === "video" ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} bg-black relative flex items-center justify-center overflow-hidden cursor-pointer reframed-video-container`}
-                onClick={togglePlay}
-            >
-                {contentType === "video" ? (
-                    <>
-                        {videoUrl && (
-                            (() => {
-                                const ytId = getYoutubeId(videoUrl);
+            <div className={`${contentType === "video" ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} bg-black relative flex items-center justify-center overflow-hidden cursor-pointer`}>
 
-                                if (ytId) {
-                                    return (
-                                        <div className="absolute inset-0 bg-black">
-                                            <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
-                                                {!isYTActive ? (
-                                                    <div className="relative w-full h-full group" onClick={togglePlay}>
-                                                        <img
-                                                            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-                                                            alt="Video thumbnail"
-                                                            className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
-                                                        />
-                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-300 cursor-pointer">
-                                                                <Play className="w-6 h-6 text-white ml-1 fill-white" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <iframe
-                                                        width="100%"
-                                                        height="100%"
-                                                        src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=1&rel=0&modestbranding=1&enablejsapi=1`}
-                                                        frameBorder="0"
-                                                        className="w-full h-full opacity-100"
-                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <video
-                                        ref={videoRef}
-                                        src={`${videoUrl}#t=${item.startTime || 0},${item.endTime || 10}`}
-                                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-                                        style={{ opacity: isPlaying ? 1 : 0.8 }}
-                                        muted
-                                        playsInline
-                                        loop={false}
-                                        onPlay={() => setIsPlaying(true)}
-                                        onPlaying={() => setIsPlaying(true)}
-                                        onPause={() => setIsPlaying(false)}
-                                        onEnded={() => {
-                                            // Manual loop logic to ensure it stays within bounds if browser ignores fragments
-                                            if (videoRef.current) {
-                                                videoRef.current.currentTime = item.startTime || 0;
-                                                videoRef.current.play().catch(() => setIsPlaying(false));
-                                            }
-                                        }}
-                                        onTimeUpdate={() => {
-                                            const v = videoRef.current;
-                                            if (v && isPlaying) {
-                                                const end = item.endTime;
-                                                // Check if we passed the end time (with buffer)
-                                                if (end && v.currentTime >= end) {
-                                                    v.pause();
-                                                    v.currentTime = item.startTime || 0;
-                                                    v.play().catch(() => setIsPlaying(false));
-                                                }
-                                            }
-                                        }}
-                                    />
-                                );
-                            })()
-                        )}
-
-                        {/* Play Overlay - Conditionally Rendered for LOCAL VIDEO ONLY */}
-                        {(!isPlaying && !getYoutubeId(videoUrl)) && (
-                            <div className="play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 cursor-pointer">
-                                <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl hover:scale-110 transition-transform duration-300">
-                                    <Play className="w-6 h-6 text-white ml-1 fill-white" />
+                {/* CASE 1: YouTube Video */}
+                {contentType === "video" && ytId && (
+                    <div className="absolute inset-0 w-full h-full bg-black">
+                        {showYTIframe ? (
+                            // 1A: IFRAME ACTIVE (Playing) - No Overlay, No Thumbnail
+                            <div className="w-full h-full">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=1&rel=0&modestbranding=1&enablejsapi=1`}
+                                    frameBorder="0"
+                                    className="w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                />
+                            </div>
+                        ) : (
+                            // 1B: THUMBNAIL (Paused) - + White Play Button
+                            <div
+                                className="w-full h-full relative group"
+                                onClick={activateYouTube}
+                            >
+                                <img
+                                    src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                    alt="Video thumbnail"
+                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-300">
+                                        <Play className="w-8 h-8 text-white ml-1 fill-white" />
+                                    </div>
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
 
-                        {/* Bottom Info */}
-                        <div className="absolute inset-x-0 bottom-0 p-5 z-20 pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
-                            <h3 className="font-bold text-white text-sm mb-2 line-clamp-1 drop-shadow-md">{item.title}</h3>
-                            <div className="flex gap-2">
-                                <span className="text-[10px] font-black bg-purple-600/90 text-white px-2 py-0.5 rounded shadow-sm border border-purple-400/30 uppercase tracking-tighter">{videoConfig.aspectRatio}</span>
-                                <span className="text-[10px] font-black bg-blue-600/90 text-white px-2 py-0.5 rounded shadow-sm border border-blue-400/30 uppercase tracking-tighter">AI READY</span>
+                {/* CASE 2: Local Video */}
+                {contentType === "video" && !ytId && videoUrl && (
+                    <div className="absolute inset-0 w-full h-full" onClick={toggleLocalPlay}>
+                        <video
+                            ref={videoRef}
+                            src={`${videoUrl}#t=${item.startTime || 0},${item.endTime || 10}`}
+                            className="w-full h-full object-cover"
+                            muted
+                            loop
+                            playsInline
+                            onPlay={() => setIsLocalPlaying(true)}
+                            onPause={() => setIsLocalPlaying(false)}
+                            onEnded={() => setIsLocalPlaying(false)}
+                        />
+                        {/* PLAY OVERLAY (Only if NOT playing) */}
+                        {!isLocalPlaying && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300">
+                                <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl">
+                                    <Play className="w-8 h-8 text-white ml-1 fill-white" />
+                                </div>
                             </div>
-                        </div>
-                    </>
-                ) : (
-                    <div className="w-full h-full bg-slate-50 p-6 group-hover:bg-white transition-colors duration-500 flex flex-col items-start text-left relative">
+                        )}
+                    </div>
+                )}
+
+                {/* CASE 3: Text Content */}
+                {contentType !== "video" && (
+                    <div className="w-full h-full bg-white p-6 group-hover:bg-slate-50 transition-colors duration-500 flex flex-col items-start text-left relative">
                         <FileText className="w-8 h-8 text-slate-200 absolute -top-1 -right-1 transform rotate-12" />
                         <h3 className="text-slate-900 font-bold text-base mb-3 line-clamp-2">{item.title}</h3>
                         <div className="flex-1 overflow-hidden relative w-full">
