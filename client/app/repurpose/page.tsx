@@ -821,7 +821,7 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                                                     height="100%"
                                                     src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`}
                                                     frameBorder="0"
-                                                    className={`w-full h-full transition-opacity duration-700 ${isYTActive ? 'opacity-100' : 'opacity-30'}`}
+                                                    className={`w-full h-full transition-opacity duration-700 ${isYTActive ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none'}`}
                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                 />
                                             </div>
@@ -865,12 +865,14 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                             })()
                         )}
 
-                        {/* Play Overlay */}
-                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 ${isPlaying ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 cursor-pointer'}`}>
-                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl hover:scale-110 transition-transform duration-300">
-                                <Play className="w-6 h-6 text-white ml-1 fill-white" />
+                        {/* Play Overlay - Conditionally Rendered to FORCE remove */}
+                        {!isPlaying && (
+                            <div className="play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 cursor-pointer">
+                                <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl hover:scale-110 transition-transform duration-300">
+                                    <Play className="w-6 h-6 text-white ml-1 fill-white" />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Bottom Info */}
                         <div className="absolute inset-x-0 bottom-0 p-5 z-20 pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
