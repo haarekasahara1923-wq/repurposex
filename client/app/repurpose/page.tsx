@@ -758,6 +758,8 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
         e.preventDefault();
         e.stopPropagation();
 
+        console.log("🖱️ [ResultCard] Toggle Play Clicked", { id: item.id, currentIsPlaying: isPlaying, isYTActive });
+
         // Prevent trigger if clicking on buttons or checkboxes
         if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input')) {
             return;
@@ -765,16 +767,22 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
 
         if (videoRef.current) {
             if (videoRef.current.paused) {
-                videoRef.current.play().catch(console.error);
+                videoRef.current.play().catch(err => console.error("❌ [ResultCard] Play Error:", err));
             } else {
                 videoRef.current.pause();
             }
         } else {
             // For YouTube
+            console.log("▶️ [ResultCard] Activating YouTube");
             setIsYTActive(true);
             setIsPlaying(true);
         }
     };
+
+    // Debug Logger
+    useEffect(() => {
+        console.log("🔄 [ResultCard] State Update:", { id: item.id, isPlaying, isYTActive });
+    }, [isPlaying, isYTActive, item.id]);
 
     const isSelected = selectedItems.has(item.id);
 
@@ -816,14 +824,29 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                                     return (
                                         <div className="absolute inset-0 bg-black">
                                             <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
-                                                <iframe
-                                                    width="100%"
-                                                    height="100%"
-                                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`}
-                                                    frameBorder="0"
-                                                    className={`w-full h-full transition-opacity duration-700 ${isYTActive ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none'}`}
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                />
+                                                {!isYTActive ? (
+                                                    <div className="relative w-full h-full group" onClick={togglePlay}>
+                                                        <img
+                                                            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                                            alt="Video thumbnail"
+                                                            className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-300 cursor-pointer">
+                                                                <Play className="w-6 h-6 text-white ml-1 fill-white" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <iframe
+                                                        width="100%"
+                                                        height="100%"
+                                                        src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=1&rel=0&modestbranding=1&enablejsapi=1`}
+                                                        frameBorder="0"
+                                                        className="w-full h-full opacity-100"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -865,8 +888,8 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                             })()
                         )}
 
-                        {/* Play Overlay - Conditionally Rendered to FORCE remove */}
-                        {!isPlaying && (
+                        {/* Play Overlay - Conditionally Rendered for LOCAL VIDEO ONLY */}
+                        {(!isPlaying && !getYoutubeId(videoUrl)) && (
                             <div className="play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 cursor-pointer">
                                 <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl hover:scale-110 transition-transform duration-300">
                                     <Play className="w-6 h-6 text-white ml-1 fill-white" />
