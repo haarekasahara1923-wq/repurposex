@@ -325,10 +325,11 @@ export default function RepurposePage() {
                     // COPY LINK INSTEAD OF ERROR
                     const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
                     if (ytId) {
-                        const embedUrl = `https://youtu.be/${ytId}?t=${Math.floor(item.startTime || 0)}`;
+                        const startTime = Math.floor(Number(item.startTime) || 0);
+                        const embedUrl = `https://www.youtube.com/watch?v=${ytId}&t=${startTime}s`;
                         await navigator.clipboard.writeText(embedUrl);
-                        toast.success("YouTube Clip Link Copied! (Direct download not supported via browser)", {
-                            duration: 4000,
+                        toast.success(`Link Copied! Opens original video at ${startTime}s.`, {
+                            duration: 5000,
                             icon: '🔗'
                         });
                     } else {
