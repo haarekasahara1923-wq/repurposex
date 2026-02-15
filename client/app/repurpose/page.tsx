@@ -866,8 +866,8 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                         )}
 
                         {/* Play Overlay */}
-                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 pointer-events-none ${isPlaying ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl">
+                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300 ${isPlaying ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 cursor-pointer'}`}>
+                            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl hover:scale-110 transition-transform duration-300">
                                 <Play className="w-6 h-6 text-white ml-1 fill-white" />
                             </div>
                         </div>
