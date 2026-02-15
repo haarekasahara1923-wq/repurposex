@@ -667,15 +667,17 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                 {isContentVideo && ytId && (
                     <div className="absolute inset-0 w-full h-full bg-black">
                         {showYTIframe ? (
-                            // 1A: IFRAME ACTIVE (Playing)
-                            <div className="w-full h-full">
+                            // 1A: IFRAME ACTIVE (Playing) - Scaled to Fill
+                            <div className="absolute inset-0 h-full left-1/2 -translate-x-1/2 pointer-events-none" style={{
+                                width: videoConfig.aspectRatio === '9:16' ? '315%' : videoConfig.aspectRatio === '1:1' ? '177%' : '100%'
+                            }}>
                                 <iframe
                                     width="100%"
                                     height="100%"
-                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=1&rel=0&modestbranding=1&enablejsapi=1`}
+                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=0&autoplay=1&rel=0&modestbranding=1&playlist=${ytId}&loop=1`}
                                     frameBorder="0"
-                                    className="w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    className="w-full h-full pointer-events-auto"
+                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                                 />
                             </div>
                         ) : (
