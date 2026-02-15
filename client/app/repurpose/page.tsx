@@ -743,7 +743,7 @@ export default function RepurposeWizard() {
 // Helper to get YouTube ID
 function getYoutubeId(url: string | null) {
     if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
 }
@@ -834,7 +834,7 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-300">
-                                        <Play className="w-8 h-8 text-white ml-1 fill-white" />
+                                        <Play className="w-8 h-8 text-purple-400 ml-1 fill-purple-400" />
                                     </div>
                                 </div>
                             </div>
@@ -860,7 +860,7 @@ function ResultCard({ item, contentType, videoConfig, videoUrl, handleAction, se
                         {!isLocalPlaying && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300">
                                 <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl">
-                                    <Play className="w-8 h-8 text-white ml-1 fill-white" />
+                                    <Play className="w-8 h-8 text-purple-400 ml-1 fill-purple-400" />
                                 </div>
                             </div>
                         )}
