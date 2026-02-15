@@ -609,34 +609,36 @@ export default function RepurposePage() {
 }
 
 function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, handleAction, selectedItems, setSelectedItems }: any) {
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [isLocalPlaying, setIsLocalPlaying] = useState(false);
+    const [showYTIframe, setShowYTIframe] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [isYTActive, setIsYTActive] = useState(false);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (videoRef.current) {
-                const actualPlaying = !videoRef.current.paused && !videoRef.current.ended;
-                if (actualPlaying !== isPlaying) setIsPlaying(actualPlaying);
-            }
-        }, 400);
-        return () => clearInterval(interval);
-    }, [isPlaying]);
+    // Get Clean File URL
+    const fileUrl = item.fileUrl || content?.fileUrl || content?.filePath || "";
+    // Regex to detect YouTube (including Shorts)
+    const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
 
-    const togglePlay = (e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest('button')) return;
+    // Toggle for Local Video
+    const toggleLocalPlay = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
 
         if (videoRef.current) {
             if (videoRef.current.paused) {
-                videoRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+                videoRef.current.play().catch(err => console.error("Play error:", err));
+                setIsLocalPlaying(true);
             } else {
                 videoRef.current.pause();
-                setIsPlaying(false);
+                setIsLocalPlaying(false);
             }
-        } else {
-            setIsYTActive(true);
-            setIsPlaying(true);
         }
+    };
+
+    // Toggle for YouTube (Swap Thumbnail -> Iframe)
+    const activateYouTube = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowYTIframe(true);
     };
 
     const isSelected = selectedItems.has(item.id);
@@ -647,56 +649,94 @@ function ResultCard({ item, isContentVideo, content, videoConfig, getMediaUrl, h
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
+                        // Handle selection
                         const next = new Set(selectedItems);
                         if (next.has(item.id)) next.delete(item.id);
                         else next.add(item.id);
                         setSelectedItems(next);
                     }}
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-purple-600 border-purple-500' : 'bg-black/50 border-white/20'}`}
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${isSelected ? 'bg-purple-600 border-purple-500' : 'bg-black/50 border-white/20'}`}
                 >
                     {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
                 </button>
             </div>
 
-            <div className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} relative flex items-center justify-center overflow-hidden cursor-pointer`} onClick={togglePlay}>
-                {isContentVideo ? (
-                    <>
-                        {(() => {
-                            const fileUrl = item.fileUrl || content.fileUrl || content.filePath || "";
-                            const isYouTube = fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be");
-                            const absoluteUrl = getMediaUrl(fileUrl);
+            <div className={`${isContentVideo ? (ASPECT_CLASS_MAP[videoConfig.aspectRatio] || "aspect-[9/16]") : "aspect-[9/16]"} bg-black relative flex items-center justify-center overflow-hidden cursor-pointer`}>
 
-                            if (isYouTube) {
-                                const ytId = fileUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|s\/|live\/))([^&?\/]+)/)?.[1];
-                                return ytId ? (
-                                    <div className="absolute inset-0 bg-black">
-                                        <div className={`${videoConfig.aspectRatio === '1:1' ? 'w-[177%] h-full' : 'w-[300%] h-full'} absolute left-1/2 -translate-x-1/2`}>
-                                            <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=${isYTActive ? 1 : 0}&rel=0&modestbranding=1&enablejsapi=1`} frameBorder="0" className={`w-full h-full transition-opacity duration-700 ${isYTActive ? 'opacity-100' : 'opacity-40'}`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
-                                        </div>
+                {/* CASE 1: YouTube Video */}
+                {isContentVideo && ytId && (
+                    <div className="absolute inset-0 w-full h-full bg-black">
+                        {showYTIframe ? (
+                            // 1A: IFRAME ACTIVE (Playing)
+                            <div className="w-full h-full">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src={`https://www.youtube.com/embed/${ytId}?start=${item.startTime}&end=${item.endTime}&controls=1&mute=0&autoplay=1&rel=0&modestbranding=1&enablejsapi=1`}
+                                    frameBorder="0"
+                                    className="w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                />
+                            </div>
+                        ) : (
+                            // 1B: THUMBNAIL (Paused) - + Purple Play Button
+                            <div
+                                className="w-full h-full relative group"
+                                onClick={activateYouTube}
+                            >
+                                <img
+                                    src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                    alt="Video thumbnail"
+                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-300"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-300">
+                                        <Play className="w-8 h-8 text-purple-400 ml-1 fill-purple-400" />
                                     </div>
-                                ) : <div className="p-6 text-center text-xs text-slate-500"><Video className="w-12 h-12 mb-2 opacity-20 mx-auto" /> Link broken</div>;
-                            }
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                            return (
-                                <video ref={videoRef} src={`${absoluteUrl}#t=${item.startTime || 0},${item.endTime || 10}`} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700" style={{ opacity: isPlaying ? 1 : 0.6 }} muted autoPlay playsInline onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} onEnded={() => { if (videoRef.current) { videoRef.current.currentTime = item.startTime || 0; videoRef.current.play(); } }} onTimeUpdate={() => { const v = videoRef.current; if (v && item.endTime && v.currentTime >= (item.endTime - 0.2)) { v.currentTime = item.startTime || 0; v.play(); } }} />
-                            );
-                        })()}
+                {/* CASE 2: Local Video */}
+                {isContentVideo && !ytId && (
+                    <div className="absolute inset-0 w-full h-full" onClick={toggleLocalPlay}>
+                        <video
+                            ref={videoRef}
+                            src={`${getMediaUrl(fileUrl)}#t=${item.startTime || 0},${item.endTime || 10}`}
+                            className="w-full h-full object-cover"
+                            muted
+                            loop
+                            playsInline
+                            poster={content?.analysis?.thumbnailUrl}
+                            onPlay={() => setIsLocalPlaying(true)}
+                            onPause={() => setIsLocalPlaying(false)}
+                            onEnded={() => setIsLocalPlaying(false)}
+                        />
+                        {/* PLAY OVERLAY (Only if NOT playing) */}
+                        {!isLocalPlaying && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-300">
+                                <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-xl">
+                                    <Play className="w-8 h-8 text-purple-400 ml-1 fill-purple-400" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                        <div className={`play-overlay absolute inset-0 bg-black/40 flex items-center justify-center z-10 transition-all duration-500 pointer-events-none ${isPlaying ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
-                            <div className="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition duration-500"><Play className="w-8 h-8 text-white fill-white ml-1" /></div>
-                        </div>
-
-                        <div className="absolute bottom-0 left-0 right-0 p-5 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
-                            <h3 className="font-bold text-white text-sm mb-2 line-clamp-1">{item.title}</h3>
-                            <div className="flex gap-2"><span className="text-[10px] font-black bg-purple-600/90 px-2 py-0.5 rounded border border-purple-400/30 uppercase tracking-tighter">{videoConfig.aspectRatio}</span><span className="text-[10px] font-black bg-blue-600/90 px-2 py-0.5 rounded border border-blue-400/30 uppercase tracking-tighter">AI READY</span></div>
-                        </div>
-                    </>
-                ) : (
+                {/* CASE 3: Text Content */}
+                {!isContentVideo && (
                     <div className="w-full h-full bg-white p-8 group-hover:bg-slate-50 transition-colors duration-500 flex flex-col">
                         <FileText className="w-10 h-10 text-slate-100 absolute -top-1 -right-1 transform rotate-12" />
                         <h3 className="text-slate-900 font-bold text-lg mb-4 line-clamp-2">{item.title}</h3>
-                        <div className="flex-1 overflow-hidden relative text-slate-500 text-xs leading-relaxed"><p>{item.content}</p><div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-white to-transparent" /></div>
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2"><span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-tighter">TEXT CLIPPED</span></div>
+                        <div className="flex-1 overflow-hidden relative text-slate-500 text-xs leading-relaxed">
+                            <p>{item.content}</p>
+                            <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-white to-transparent" />
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase tracking-tighter">TEXT CLIPPED</span>
+                        </div>
                     </div>
                 )}
             </div>
