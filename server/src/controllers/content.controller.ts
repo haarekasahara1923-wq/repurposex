@@ -400,9 +400,19 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
             console.log('Fallback analysis created');
         }
 
-        // Store analysis
-        const contentAnalysis = await prisma.contentAnalysis.create({
-            data: {
+        // Store or Update analysis
+        const contentAnalysis = await prisma.contentAnalysis.upsert({
+            where: { contentAssetId: content.id },
+            update: {
+                transcript: textToAnalyze,
+                topics: analysis.topics || [],
+                keywords: analysis.keywords || [],
+                sentimentScore: analysis.sentiment?.score || 0.5,
+                viralityScore: analysis.viralityScore || 50,
+                platformScores: analysis.platformScores || {},
+                keyInsights: analysis.keyInsights || []
+            },
+            create: {
                 contentAssetId: content.id,
                 transcript: textToAnalyze,
                 topics: analysis.topics || [],
@@ -414,7 +424,7 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        console.log('Analysis saved successfully:', contentAnalysis.id);
+        console.log('Analysis saved/updated successfully:', contentAnalysis.id);
 
         res.json({
             success: true,
