@@ -338,45 +338,73 @@ async function processRepurposingJob(
 
         switch (jobType) {
             case 'blog':
-                // Generate multiple blogs if requested
-                const numBlogs = config.numBlogs || config.pieces || 1;
-                console.log(`Generating ${numBlogs} blog(s) from content`);
+            case 'newsletter':
+            case 'mail':
+            case 'post':
+                // Generate multiple pieces if requested
+                // CRITICAL FIX: Check numPieces (from frontend) not just numBlogs/pieces
+                const numPieces = config.numPieces || config.numBlogs || config.pieces || 1;
+                const contentStyle = jobType; // blog, newsletter, mail, or post
 
-                // Validate number of blogs
-                if (numBlogs < 1 || numBlogs > 10) {
-                    throw new Error(`Invalid number of blogs: ${numBlogs}. Must be between 1 and 10.`);
+                console.log(`Generating ${numPieces} ${contentStyle}(s) from content`);
+                console.log('Config received:', JSON.stringify(config, null, 2));
+
+                // Validate number of pieces
+                if (numPieces < 1 || numPieces > 10) {
+                    throw new Error(`Invalid number of pieces: ${numPieces}. Must be between 1 and 10.`);
                 }
 
-                for (let i = 0; i < numBlogs; i++) {
-                    // Add variety instruction for multiple blogs
-                    const varietyPrompt = numBlogs > 1
-                        ? `\n\nIMPORTANT: This is blog ${i + 1} of ${numBlogs}. Focus on a different aspect or angle of the content to provide variety.`
+                for (let i = 0; i < numPieces; i++) {
+                    // Add variety instruction for multiple pieces
+                    const varietyPrompt = numPieces > 1
+                        ? `\n\nIMPORTANT: This is ${contentStyle} ${i + 1} of ${numPieces}. Focus on a different aspect or angle of the content to provide variety.`
                         : '';
 
-                    const blogPrompt = transcript + varietyPrompt;
+                    const contentPrompt = transcript + varietyPrompt;
                     const wordCount = config.wordCount || 1500;
 
-                    console.log(`Generating blog ${i + 1}/${numBlogs} with ${wordCount} words target...`);
-                    result = await aiService.generateBlogPost(blogPrompt, wordCount);
+                    console.log(`Generating ${contentStyle} ${i + 1}/${numPieces} with ${wordCount} words target...`);
+
+                    // Generate based on  style
+                    let generatedResult;
+                    if (contentStyle === 'newsletter') {
+                        generatedResult = await aiService.generateBlogPost(
+                            `Create a NEWSLETTER format from this content:\n${contentPrompt}`,
+                            wordCount
+                        );
+                    } else if (contentStyle === 'mail') {
+                        generatedResult = await aiService.generateBlogPost(
+                            `Create an EMAIL CAMPAIGN format from this content:\n${contentPrompt}`,
+                            wordCount
+                        );
+                    } else if (contentStyle === 'post') {
+                        generatedResult = await aiService.generateBlogPost(
+                            `Create a SOCIAL THREAD/POST format from this content:\n${contentPrompt}`,
+                            wordCount
+                        );
+                    } else {
+                        generatedResult = await aiService.generateBlogPost(contentPrompt, wordCount);
+                    }
 
                     generatedContents.push({
-                        title: `${result.title}${numBlogs > 1 ? ` (Part ${i + 1})` : ''}`,
-                        contentText: result.content,
-                        contentType: 'blog_article',
-                        targetPlatform: 'website',
+                        title: `${generatedResult.title}${numPieces > 1 ? ` (Part ${i + 1})` : ''}`,
+                        contentText: generatedResult.content,
+                        contentType: contentStyle === 'blog' ? 'blog_article' : `${contentStyle}_content`,
+                        targetPlatform: contentStyle === 'mail' ? 'email' : 'website',
                         metadata: {
-                            keywords: result.keywords,
-                            metaDescription: result.metaDescription,
-                            blogNumber: i + 1,
-                            totalBlogs: numBlogs,
-                            wordCount: result.content?.split(' ').length || 0
+                            keywords: generatedResult.keywords,
+                            metaDescription: generatedResult.metaDescription,
+                            pieceNumber: i + 1,
+                            totalPieces: numPieces,
+                            style: contentStyle,
+                            wordCount: generatedResult.content?.split(' ').length || 0
                         }
                     });
 
-                    console.log(`Generated blog ${i + 1}: "${result.title}"`);
+                    console.log(`Generated ${contentStyle} ${i + 1}: "${generatedResult.title}"`);
 
                     // Update progress
-                    const progress = 30 + Math.round((i + 1) / numBlogs * 50);
+                    const progress = 30 + Math.round((i + 1) / numPieces * 50);
                     await prisma.repurposingJob.update({
                         where: { id: jobId },
                         data: { progress }
