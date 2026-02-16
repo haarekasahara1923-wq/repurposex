@@ -275,8 +275,48 @@ async function processRepurposingJob(
             }
         });
 
-        // Get or create analysis
-        let transcript = content.analysis?.transcript || 'Sample content for demonstration';
+        // Get or create analysis - Extract actual content
+        console.log('Content details:', {
+            id: content.id,
+            title: content.title,
+            contentType: content.contentType,
+            hasAnalysis: !!content.analysis,
+            analysisTranscript: content.analysis?.transcript?.substring(0, 100)
+        });
+
+        let transcript = '';
+
+        // Try to get transcript from analysis first
+        if (content.analysis?.transcript) {
+            transcript = content.analysis.transcript;
+            console.log('Using transcript from analysis');
+        }
+        // For documents, try to extract text content
+        else if (content.contentType === 'document') {
+            // If we have stored text content in metadata
+            if (content.metadata && typeof content.metadata === 'object') {
+                const metadata = content.metadata as any;
+                transcript = metadata.extractedText || metadata.content || metadata.text || '';
+            }
+
+            // If still no content, use title and description as fallback
+            if (!transcript || transcript.length < 50) {
+                transcript = `Document Title: ${content.title}\n\nDescription: ${content.description || 'No description provided'}\n\nNote: Full document text extraction pending. This is a placeholder based on available metadata.`;
+                console.warn('Warning: No extracted text found for document. Using metadata fallback.');
+            } else {
+                console.log(`Using extracted text from document (${transcript.length} chars)`);
+            }
+        }
+        // For other content types, use available metadata
+        else {
+            transcript = content.description || content.title || 'Sample content for demonstration';
+            console.log('Using description/title as content');
+        }
+
+        console.log(`Final transcript length: ${transcript.length} characters`);
+        if (transcript.length < 100) {
+            console.warn('Warning: Transcript is very short, generated content may not be relevant');
+        }
 
         // Select AI service
         // Priority: Groq (Fast/Free) -> Gemini -> OpenAI
@@ -298,14 +338,50 @@ async function processRepurposingJob(
 
         switch (jobType) {
             case 'blog':
-                result = await aiService.generateBlogPost(transcript, config.wordCount || 1500);
-                generatedContents.push({
-                    title: result.title,
-                    contentText: result.content,
-                    contentType: 'blog_article',
-                    targetPlatform: 'website',
-                    metadata: { keywords: result.keywords, metaDescription: result.metaDescription }
-                });
+                // Generate multiple blogs if requested
+                const numBlogs = config.numBlogs || config.pieces || 1;
+                console.log(`Generating ${numBlogs} blog(s) from content`);
+
+                // Validate number of blogs
+                if (numBlogs < 1 || numBlogs > 10) {
+                    throw new Error(`Invalid number of blogs: ${numBlogs}. Must be between 1 and 10.`);
+                }
+
+                for (let i = 0; i < numBlogs; i++) {
+                    // Add variety instruction for multiple blogs
+                    const varietyPrompt = numBlogs > 1
+                        ? `\n\nIMPORTANT: This is blog ${i + 1} of ${numBlogs}. Focus on a different aspect or angle of the content to provide variety.`
+                        : '';
+
+                    const blogPrompt = transcript + varietyPrompt;
+                    const wordCount = config.wordCount || 1500;
+
+                    console.log(`Generating blog ${i + 1}/${numBlogs} with ${wordCount} words target...`);
+                    result = await aiService.generateBlogPost(blogPrompt, wordCount);
+
+                    generatedContents.push({
+                        title: `${result.title}${numBlogs > 1 ? ` (Part ${i + 1})` : ''}`,
+                        contentText: result.content,
+                        contentType: 'blog_article',
+                        targetPlatform: 'website',
+                        metadata: {
+                            keywords: result.keywords,
+                            metaDescription: result.metaDescription,
+                            blogNumber: i + 1,
+                            totalBlogs: numBlogs,
+                            wordCount: result.content?.split(' ').length || 0
+                        }
+                    });
+
+                    console.log(`Generated blog ${i + 1}: "${result.title}"`);
+
+                    // Update progress
+                    const progress = 30 + Math.round((i + 1) / numBlogs * 50);
+                    await prisma.repurposingJob.update({
+                        where: { id: jobId },
+                        data: { progress }
+                    });
+                }
                 break;
 
             case 'linkedin':
