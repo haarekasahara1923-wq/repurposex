@@ -200,22 +200,19 @@ export default function RepurposeWizard() {
     };
 
     const generateMockResults = () => {
-        // Assuming 'content' would be a state variable holding API response for content analysis
-        // For now, we'll use extractedText as the primary source for document content.
-        const content = null; // Placeholder for actual content analysis data
-        if (!content && !extractedText) return;
+        if (!extractedText) return;
 
         const items: GeneratedItem[] = [];
         const isContentVideo = contentType === "video";
         const count = isContentVideo ? videoConfig.numShorts : docConfig.numPieces;
 
         // Use extracted text but CLEAN it if it looks like raw PDF code
-        let sourceText = extractedText || content?.analysis?.transcript || "";
+        let sourceText = extractedText || "";
         if (sourceText.startsWith("%PDF") || sourceText.includes("obj\n<<")) {
             sourceText = "Your document has been processed. Our AI assistant is analyzing the themes and key perspectives to provide you with high-quality repurposed content.";
         }
 
-        const duration = Number(content?.duration || 60);
+        const duration = 60; // Default duration for mock pieces
 
         for (let i = 1; i <= count; i++) {
             const hook = generateHook();
