@@ -5,8 +5,9 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Runtime fallback mechanism
 const generateWithFallback = async (prompt: string) => {
-    // Priority: 1.5 Flash (Fast/Cheap) -> 1.5 Pro (Powerful) -> 2.0 Flash (Next Gen) -> 1.0 Pro (Legacy)
-    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-1.0-pro"];
+    // Priority: 1.5 Flash (Fast/Cheap) -> 1.5 Pro (Powerful) -> 2.0 Flash (Next Gen)
+    // REMOVED: gemini-1.0-pro (deprecated - returns 404 error)
+    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
     let lastError: any;
 
     if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
