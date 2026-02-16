@@ -62,6 +62,25 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
             else finalContentType = 'unknown';
         }
 
+        // IMMEDIATE EXTRACTION for Documents (Prevents loss of content on Vercel /tmp)
+        let extractedText = '';
+        if (finalContentType === 'document' && req.file) {
+            try {
+                const fsPath = req.file.path;
+                if (req.file.mimetype === 'application/pdf') {
+                    console.log('[UPLOAD] Extracting text from uploaded PDF...');
+                    const dataBuffer = await fs.readFile(fsPath);
+                    const pdfData = await pdfParse(dataBuffer);
+                    extractedText = pdfData.text;
+                } else if (req.file.mimetype === 'text/plain') {
+                    extractedText = await fs.readFile(fsPath, 'utf-8');
+                }
+                console.log(`[UPLOAD] Successfully extracted ${extractedText.length} characters`);
+            } catch (err) {
+                console.warn('[UPLOAD] Text extraction failed during upload:', err);
+            }
+        }
+
         console.log('Creating content asset:', {
             userId: req.user.id,
             title: title || (req.file ? req.file.originalname : 'URL Import'),
@@ -82,6 +101,7 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
                 sourcePlatform: url ? (url.includes('youtube') ? 'youtube' : 'other') : 'upload',
                 uploadStatus: 'completed',
                 tags: tags ? tags.split(',') : [],
+                metadata: extractedText ? { extractedText } : {}, // Store extracted text here
                 processingCompletedAt: new Date()
             }
         });
@@ -262,7 +282,18 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
         // In production, you'd handle audio/video transcription first
         let textToAnalyze = '';
 
-        if (
+        // Check if we already have extracted text in metadata (from upload phase)
+        if (content.metadata && typeof content.metadata === 'object') {
+            const meta = content.metadata as any;
+            if (meta.extractedText) {
+                console.log('Using pre-extracted text from metadata');
+                textToAnalyze = meta.extractedText;
+            }
+        }
+
+        if (textToAnalyze) {
+            // Already have text, skip file reading
+        } else if (
             content.contentType === 'video' ||
             content.contentType === 'audio' ||
             content.fileUrl.startsWith('http') ||
