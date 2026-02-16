@@ -181,20 +181,38 @@ export const authAPI = {
 // Content API
 export const contentAPI = {
     upload: async (formData: FormData, onProgress?: (progress: number) => void) => {
-        const response = await api.post('/api/v1/content/upload', formData, {
-            onUploadProgress: (progressEvent) => {
-                if (progressEvent.total && onProgress) {
-                    const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    onProgress(progress);
-                }
-            },
-        });
-        const data = response.data;
-        // Map contentType to type
-        if (data && data.contentType && !data.type) {
-            data.type = data.contentType;
+        try {
+            console.log('Starting upload...', {
+                hasFile: formData.has('file'),
+                hasUrl: formData.has('url'),
+                hasTitle: formData.has('title')
+            });
+
+            const response = await api.post('/api/v1/content/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total && onProgress) {
+                        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        onProgress(progress);
+                    }
+                },
+            });
+            const data = response.data;
+            // Map contentType to type
+            if (data && data.contentType && !data.type) {
+                data.type = data.contentType;
+            }
+            console.log('Upload successful:', data);
+            return data;
+        } catch (error: any) {
+            console.error('Upload failed - Full error:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            console.error('Error message:', error.message);
+            throw error;
         }
-        return data;
     },
 
     getAll: async (): Promise<ContentAsset[]> => {

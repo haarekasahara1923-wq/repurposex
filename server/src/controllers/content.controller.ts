@@ -10,18 +10,26 @@ import axios from 'axios';
 
 export const uploadContent = async (req: AuthRequest, res: Response) => {
     try {
-        console.log('Upload request received:', {
-            hasFile: !!req.file,
-            hasUrl: !!req.body.url,
-            fileInfo: req.file ? {
-                originalname: req.file.originalname,
-                mimetype: req.file.mimetype,
-                size: req.file.size
-            } : null,
-            body: req.body
+        // Comprehensive request logging
+        console.log('====== UPLOAD REQUEST RECEIVED ======');
+        console.log('Headers:', {
+            'content-type': req.headers['content-type'],
+            'content-length': req.headers['content-length'],
+            'authorization': req.headers.authorization ? 'Present' : 'Missing'
         });
+        console.log('Body keys:', Object.keys(req.body));
+        console.log('Body:', req.body);
+        console.log('File object:', req.file ? {
+            fieldname: req.file.fieldname,
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            path: req.file.path
+        } : 'No file attached');
+        console.log('=====================================');
 
         if (!req.user) {
+            console.error('Upload rejected: User not authenticated');
             return res.status(401).json({
                 success: false,
                 error: { code: 'UNAUTHORIZED', message: 'Not authenticated' }

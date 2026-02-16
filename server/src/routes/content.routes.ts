@@ -65,7 +65,66 @@ const upload = multer({
 // All content routes require authentication
 router.use(authenticate);
 
-router.post('/upload', upload.single('file'), uploadContent);
+// Multer error handling middleware
+const handleMulterError = (err: any, req: any, res: any, next: any) => {
+    console.error('Multer error:', err);
+
+    if (err instanceof multer.MulterError) {
+        // Multer-specific errors
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'FILE_TOO_LARGE',
+                    message: 'File size exceeds the maximum limit of 2GB'
+                }
+            });
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'UNEXPECTED_FIELD',
+                    message: 'Unexpected file field. Please use "file" as the field name.'
+                }
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            error: {
+                code: 'UPLOAD_ERROR',
+                message: err.message || 'File upload failed'
+            }
+        });
+    }
+
+    if (err.message && err.message.includes('File type')) {
+        // File type validation error
+        return res.status(400).json({
+            success: false,
+            error: {
+                code: 'INVALID_FILE_TYPE',
+                message: err.message
+            }
+        });
+    }
+
+    if (err.message && err.message.includes('Cloudinary')) {
+        // Cloudinary configuration error
+        return res.status(500).json({
+            success: false,
+            error: {
+                code: 'SERVICE_ERROR',
+                message: 'File upload service error. Please try again or contact support.'
+            }
+        });
+    }
+
+    // Pass to next error handler
+    next(err);
+};
+
+router.post('/upload', upload.single('file'), handleMulterError, uploadContent);
 router.get('/', getContentList);
 router.get('/:id', getContentById);
 router.post('/:id/analyze', analyzeContent);
