@@ -7,6 +7,7 @@ import openaiService from '../services/openai.service';
 import geminiService from '../services/gemini.service';
 import { emailService } from '../services/email.service';
 import axios from 'axios';
+const pdfParse = require('pdf-parse');
 
 export const uploadContent = async (req: AuthRequest, res: Response) => {
     try {
@@ -279,14 +280,23 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
             Description: ${content.description || 'No description provided'}
             Tags: ${(content.tags || []).join(', ')}`;
         } else {
-            // Read text file from local filesystem
+            // Read text/document file from local filesystem
             try {
                 let fsPath = content.fileUrl;
                 if (fsPath.startsWith('http')) {
-                    // Fetch from Cloudinary/Remote URL
+                    // Fetch from Cloudinary/Remote URL  
                     console.log(`Fetching remote file for analysis: ${fsPath}`);
-                    const response = await axios.get(fsPath);
-                    textToAnalyze = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+                    const response = await axios.get(fsPath, { responseType: 'arraybuffer' });
+
+                    // Check if it's a PDF
+                    if (content.mimeType === 'application/pdf' || fsPath.toLowerCase().endsWith('.pdf')) {
+                        console.log('Extracting text from remote PDF...');
+                        const pdfData = await pdfParse(response.data);
+                        textToAnalyze = pdfData.text;
+                        console.log(`Extracted ${textToAnalyze.length} characters from PDF`);
+                    } else {
+                        textToAnalyze = typeof response.data === 'string' ? response.data : Buffer.from(response.data).toString('utf-8');
+                    }
                 } else {
                     if (fsPath.startsWith('/uploads')) {
                         const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
@@ -298,10 +308,21 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
                     }
 
                     console.log(`Analyzing file at: ${fsPath}`);
-                    textToAnalyze = await fs.readFile(fsPath, 'utf-8');
+
+                    // Check if it's a PDF based on mime type or extension
+                    if (content.mimeType === 'application/pdf' || fsPath.toLowerCase().endsWith('.pdf')) {
+                        console.log('Extracting text from local PDF...');
+                        const dataBuffer = await fs.readFile(fsPath);
+                        const pdfData = await pdfParse(dataBuffer);
+                        textToAnalyze = pdfData.text;
+                        console.log(`Extracted ${textToAnalyze.length} characters from PDF`);
+                    } else {
+                        // Plain text file
+                        textToAnalyze = await fs.readFile(fsPath, 'utf-8');
+                    }
                 }
-            } catch (err) {
-                console.warn(`Failed to read file at ${content.fileUrl}, using metadata instead:`, err);
+            } catch (err: any) {
+                console.warn(`Failed to read file at ${content.fileUrl}, using metadata instead:`, err.message);
                 textToAnalyze = `Title: ${content.title}\nDescription: ${content.description || ''}`;
             }
         }
