@@ -10,6 +10,17 @@ import axios from 'axios';
 
 export const uploadContent = async (req: AuthRequest, res: Response) => {
     try {
+        console.log('Upload request received:', {
+            hasFile: !!req.file,
+            hasUrl: !!req.body.url,
+            fileInfo: req.file ? {
+                originalname: req.file.originalname,
+                mimetype: req.file.mimetype,
+                size: req.file.size
+            } : null,
+            body: req.body
+        });
+
         if (!req.user) {
             return res.status(401).json({
                 success: false,
@@ -42,6 +53,13 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
             else finalContentType = 'unknown';
         }
 
+        console.log('Creating content asset:', {
+            userId: req.user.id,
+            title: title || (req.file ? req.file.originalname : 'URL Import'),
+            finalContentType,
+            fileUrl: normalizedFileUrl
+        });
+
         const content = await prisma.contentAsset.create({
             data: {
                 userId: req.user.id,
@@ -59,6 +77,8 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        console.log('Content created successfully:', content.id);
+
         res.status(201).json({
             success: true,
             id: content.id,
@@ -68,11 +88,32 @@ export const uploadContent = async (req: AuthRequest, res: Response) => {
             uploadStatus: content.uploadStatus,
             createdAt: content.createdAt
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Upload error:', error);
+        console.error('Error stack:', error.stack);
+
+        // Provide more specific error messages
+        let errorMessage = 'Failed to upload content';
+        let errorCode = 'UPLOAD_FAILED';
+
+        if (error.message?.includes('Cloudinary')) {
+            errorMessage = 'File upload service not configured. Please contact administrator.';
+            errorCode = 'SERVICE_NOT_CONFIGURED';
+        } else if (error.message?.includes('File type')) {
+            errorMessage = error.message;
+            errorCode = 'INVALID_FILE_TYPE';
+        } else if (error.message?.includes('File too large')) {
+            errorMessage = 'File size exceeds maximum limit of 2GB';
+            errorCode = 'FILE_TOO_LARGE';
+        }
+
         res.status(500).json({
             success: false,
-            error: { code: 'UPLOAD_FAILED', message: 'Failed to upload content' }
+            error: {
+                code: errorCode,
+                message: errorMessage,
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            }
         });
     }
 };
