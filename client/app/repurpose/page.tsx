@@ -262,8 +262,9 @@ export default function RepurposeWizard() {
             }, 2000);
 
         } catch (error: any) {
-            console.error("Processing failed", error);
-            toast.error(error.response?.data?.message || "Generation failed. Try again.");
+            console.error("Processing failed - Full Error:", error);
+            const serverMsg = error.response?.data?.error?.message || error.response?.data?.message;
+            toast.error(serverMsg || error.message || "Generation failed. Try again.", { duration: 5000 });
             setStep("configure");
         }
     };
