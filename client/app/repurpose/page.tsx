@@ -166,50 +166,120 @@ export default function RepurposeWizard() {
         setStep("processing");
         setProcessingProgress(0);
 
-        // Upload to Content Library in the background
-        if (selectedFile) {
-            try {
+        try {
+            let contentId = "";
+
+            // 1. Upload file if selected
+            if (selectedFile) {
+                setProcessingProgress(10);
                 const formData = new FormData();
                 formData.append("file", selectedFile);
                 formData.append("contentType", contentType);
+                formData.append("title", selectedFile.name);
 
-                contentAPI.upload(formData)
-                    .then(() => {
-                        toast.success("Added to Content Library");
-                    })
-                    .catch(err => {
-                        console.error("Library upload failed", err);
-                    });
-            } catch (e) {
-                console.error("Upload preparation failed", e);
+                const uploadRes = await contentAPI.upload(formData);
+                contentId = uploadRes.id;
+                setProcessingProgress(30);
+                toast.success("Uploaded successfully");
+            } else if (urlInput) {
+                // Handle URL/YouTube later or use existing logic
+                toast.error("Please upload a file for high-quality analysis.");
+                setStep("configure");
+                return;
+            } else {
+                toast.error("No source provided");
+                setStep("configure");
+                return;
             }
-        }
 
-        // Simulate AI Processing
-        const interval = setInterval(() => {
-            setProcessingProgress((prev) => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    generateMockResults();
-                    setStep("results");
-                    return 100;
+            // 2. Trigger Analysis (Extract Text from PDF on Backend)
+            setProcessingProgress(40);
+            const analysisResult = await contentAPI.analyze(contentId);
+            setProcessingProgress(60);
+
+            // Update preview with real extracted text if it exists
+            if (analysisResult.transcript) {
+                setExtractedText(analysisResult.transcript);
+            }
+
+            // 3. Create Repurposing Job
+            setProcessingProgress(70);
+            const job = await repurposeAPI.create({
+                contentId,
+                outputType: docConfig.style,
+                tone: "professional",
+                config: {
+                    count: docConfig.numPieces,
+                    style: docConfig.style,
+                    aiHooks: docConfig.aiHooks
                 }
-                return prev + 5;
             });
-        }, 150); // ~3 seconds total
+
+            // 4. Poll for Job Completion
+            let pollCount = 0;
+            const pollInterval = setInterval(async () => {
+                pollCount++;
+                try {
+                    const updatedJob = await repurposeAPI.getJob(job.id);
+                    setProcessingProgress(Math.min(95, 70 + (updatedJob.progress || 0) * 0.25));
+
+                    if (updatedJob.status === "completed") {
+                        clearInterval(pollInterval);
+                        setProcessingProgress(100);
+
+                        // Use the results from the backend!
+                        const aiResults = updatedJob.generatedContent || updatedJob.result?.items || [];
+                        if (aiResults.length > 0) {
+                            const items = aiResults.map((res: any, idx: number) => ({
+                                id: `ai-${idx}`,
+                                title: res.title || `${docConfig.style.toUpperCase()} #${idx + 1}`,
+                                description: res.description || (res.content?.substring(0, 100) + "..."),
+                                content: res.content || res.text,
+                                type: "text",
+                                status: "ready"
+                            }));
+                            setGeneratedItems(items);
+                            setSelectedItems(new Set(items.map((i: any) => i.id)));
+                        } else {
+                            // Fallback to smart-mock but with real extracted text
+                            generateMockResults(analysisResult.transcript);
+                        }
+                        setStep("results");
+                    } else if (updatedJob.status === "failed") {
+                        clearInterval(pollInterval);
+                        toast.error("AI Generation failed. Falling back to smart extraction.");
+                        generateMockResults(analysisResult.transcript);
+                        setStep("results");
+                    } else if (pollCount > 60) { // 1 minute timeout
+                        clearInterval(pollInterval);
+                        toast.error("Response taking too long. Generating from extracted text.");
+                        generateMockResults(analysisResult.transcript);
+                        setStep("results");
+                    }
+                } catch (err) {
+                    console.error("Polling error", err);
+                }
+            }, 2000);
+
+        } catch (error: any) {
+            console.error("Processing failed", error);
+            toast.error(error.response?.data?.message || "Generation failed. Try again.");
+            setStep("configure");
+        }
     };
 
-    const generateMockResults = () => {
-        if (!extractedText) return;
+    const generateMockResults = (providedText?: string) => {
+        const textToUse = providedText || extractedText;
+        if (!textToUse) return;
 
         const items: GeneratedItem[] = [];
         const isContentVideo = contentType === "video";
         const count = isContentVideo ? videoConfig.numShorts : docConfig.numPieces;
 
-        // Use extracted text but CLEAN it if it looks like raw PDF code
-        let sourceText = extractedText || "";
-        if (sourceText.startsWith("%PDF") || sourceText.includes("obj\n<<")) {
-            sourceText = "Your document has been processed. Our AI assistant is analyzing the themes and key perspectives to provide you with high-quality repurposed content.";
+        // Use extracted text but CLEAN it if it looks like raw PDF code or the preview message
+        let sourceText = textToUse;
+        if (sourceText.startsWith("%PDF") || sourceText.includes("obj\n<<") || sourceText.includes("PDF Document:")) {
+            sourceText = "Our AI is analyzing your content. Each generated piece below will reflect unique insights from the source document provided.";
         }
 
         const duration = 60; // Default duration for mock pieces
@@ -224,10 +294,6 @@ export default function RepurposeWizard() {
                 body = generateMockBlogContent(sourceText, i - 1, docConfig.style);
             }
 
-            const clipDuration = 10;
-            const startTime = Math.min((i - 1) * 20, Math.max(0, duration - clipDuration));
-            const endTime = Math.min(startTime + clipDuration, duration);
-
             items.push({
                 id: `gen-${i}`,
                 title: isContentVideo
@@ -239,8 +305,8 @@ export default function RepurposeWizard() {
                 type: isContentVideo ? "short" : "text",
                 status: "ready",
                 content: body,
-                startTime: startTime,
-                endTime: endTime
+                startTime: (i - 1) * 20,
+                endTime: i * 20
             });
         }
         setGeneratedItems(items);
