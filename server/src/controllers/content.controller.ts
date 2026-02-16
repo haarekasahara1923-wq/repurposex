@@ -439,11 +439,15 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
     } catch (error: any) {
         console.error('Analyze content error:', error);
         console.error('Error stack:', error.stack);
+
+        // Detailed error for frontend
+        const errorDetail = error instanceof Error ? error.message : String(error);
+
         res.status(500).json({
             success: false,
             error: {
                 code: 'ANALYSIS_FAILED',
-                message: error.message || 'Failed to analyze content',
+                message: `Analysis Error: ${errorDetail}`,
                 details: process.env.NODE_ENV === 'development' ? error.stack : undefined
             }
         });
