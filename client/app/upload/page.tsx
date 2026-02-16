@@ -126,6 +126,15 @@ export default function UploadPage() {
             const formData = new FormData();
 
             if (uploadMode === "file" && selectedFile) {
+                // Show warning for large files
+                const fileSizeMB = selectedFile.size / (1024 * 1024);
+                if (fileSizeMB > 50) {
+                    toast.loading(`Uploading large file (${fileSizeMB.toFixed(1)} MB)... This may take a few minutes.`, {
+                        duration: 5000,
+                        id: 'large-file-warning'
+                    });
+                }
+
                 formData.append("file", selectedFile);
             } else {
                 formData.append("url", urlInput);
@@ -155,10 +164,26 @@ export default function UploadPage() {
             }
         } catch (error: any) {
             console.error("Upload error:", error);
-            const message = error.response?.data?.message || "Upload failed";
-            toast.error(message);
+
+            // Handle timeout errors specifically
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                toast.error(
+                    "Upload timeout! Your file is too large or internet connection is slow. Please try:\n" +
+                    "1. Use a smaller file (under 50MB recommended)\n" +
+                    "2. Check your internet connection\n" +
+                    "3. Try again later",
+                    { duration: 8000 }
+                );
+            } else {
+                const message = error.response?.data?.error?.message ||
+                    error.response?.data?.message ||
+                    error.message ||
+                    "Upload failed";
+                toast.error(message);
+            }
         } finally {
             setUploading(false);
+            toast.dismiss('large-file-warning');
         }
     };
 

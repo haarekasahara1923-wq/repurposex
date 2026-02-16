@@ -9,7 +9,7 @@ const api: AxiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 30000, // 30 seconds
+    timeout: 300000, // 5 minutes (300 seconds) - Increased for large file uploads
 });
 
 // Request interceptor - Add auth token to requests
@@ -192,9 +192,11 @@ export const contentAPI = {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
+                timeout: 600000, // 10 minutes for large file uploads
                 onUploadProgress: (progressEvent) => {
                     if (progressEvent.total && onProgress) {
                         const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        console.log(`Upload progress: ${progress}%`);
                         onProgress(progress);
                     }
                 },
@@ -211,6 +213,13 @@ export const contentAPI = {
             console.error('Error response:', error.response?.data);
             console.error('Error status:', error.response?.status);
             console.error('Error message:', error.message);
+
+            // Check if it's a timeout error
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                console.error('Upload timeout! File may be too large or internet too slow.');
+                error.message = 'Upload timeout: The file is taking too long to upload. Please try with a smaller file or check your internet connection.';
+            }
+
             throw error;
         }
     },
