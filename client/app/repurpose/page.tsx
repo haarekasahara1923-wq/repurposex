@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
-import { contentAPI } from "@/lib/api";
+import { contentAPI, repurposeAPI } from "@/lib/api";
 
 // Mock Data Types
 type AspectRatio = "9:16" | "1:1" | "16:9" | "twitter";
