@@ -284,38 +284,39 @@ async function processRepurposingJob(
             analysisTranscript: content.analysis?.transcript?.substring(0, 100)
         });
 
+        // Create variable for transcript
         let transcript = '';
 
-        // Priority 1: Manual content from frontend (if user edited it)
-        if (config.manualContent && config.manualContent.trim().length > 10) {
-            transcript = config.manualContent;
-            console.log('Using manual content provided by user');
+        // STRATEGY: 
+        // 1. Manual User Input (Highest Priority)
+        // 2. AI Analysis Transcript
+        // 3. Extracted Text (Metadata)
+        // 4. Fallback (Title/Desc)
+
+        if (config.manualContent && String(config.manualContent).trim().length > 10) {
+            transcript = String(config.manualContent);
+            console.log('Using MANUAL CONTENT provided by user');
         }
-        // Priority 2: Transcript from analysis
         else if (content.analysis?.transcript) {
             transcript = content.analysis.transcript;
-            console.log('Using transcript from analysis');
+            console.log('Using transcript from ANALYSIS');
         }
-        // For documents, try to extract text content
-        else if (content.contentType === 'document') {
-            // If we have stored text content in metadata
-            if (content.metadata && typeof content.metadata === 'object') {
-                const metadata = content.metadata as any;
-                transcript = metadata.extractedText || metadata.content || metadata.text || '';
-            }
+        else if (content.metadata && (content.metadata as any).extractedText) {
+            transcript = (content.metadata as any).extractedText;
+            console.log('Using EXTRACTED TEXT from metadata');
+        }
+        else if (content.metadata && (content.metadata as any).content) {
+            transcript = (content.metadata as any).content;
+            console.log('Using content from metadata');
+        }
 
-            // If still no content, use title and description as fallback
-            if (!transcript || transcript.length < 50) {
-                transcript = `Document Title: ${content.title}\n\nDescription: ${content.description || 'No description provided'}\n\nNote: Full document text extraction pending. This is a placeholder based on available metadata.`;
-                console.warn('Warning: No extracted text found for document. Using metadata fallback.');
-            } else {
-                console.log(`Using extracted text from document (${transcript.length} chars)`);
-            }
-        }
-        // For other content types, use available metadata
-        else {
-            transcript = content.description || content.title || 'Sample content for demonstration';
-            console.log('Using description/title as content');
+        // Result of strategy:
+        // If still no content, use title and description as fallback
+        if (!transcript || transcript.length < 50) {
+            console.warn('Warning: Transcript not found in manual/analysis/metadata. Using fallback.');
+            transcript = `Document Title: ${content.title}\n\nDescription: ${content.description || 'No description provided'}`;
+        } else {
+            console.log(`Using FINAL TRANSCRIPT (${transcript.length} chars)`);
         }
 
         console.log(`Final transcript length: ${transcript.length} characters`);
@@ -347,11 +348,15 @@ async function processRepurposingJob(
             case 'mail':
             case 'post':
                 // Generate multiple pieces if requested
-                // CRITICAL FIX: Check numPieces (from frontend) not just numBlogs/pieces
-                const numPieces = config.numPieces || config.numBlogs || config.pieces || config.count || 1;
+                // CRITICAL FIX: Robust Manual Content & Pieces Check
+                console.log('DEBUG: Job Config:', JSON.stringify(config, null, 2));
+
+                const numPiecesRaw = config.numPieces || config.count || config.numBlogs || config.pieces || 1;
+                const numPieces = Math.max(1, Math.min(10, parseInt(String(numPiecesRaw))));
+
                 const contentStyle = jobType; // blog, newsletter, mail, or post
 
-                console.log(`Generating ${numPieces} ${contentStyle}(s) from content`);
+                console.log(`Generating ${numPieces} ${contentStyle}(s) from content (Raw count: ${numPiecesRaw})`);
                 console.log('Config received:', JSON.stringify(config, null, 2));
 
                 // Validate number of pieces
