@@ -288,7 +288,7 @@ async function processRepurposingJob(
         let transcript = '';
 
         // STRATEGY: 
-        // 1. Manual User Input (Highest Priority)
+        // 1. Manual User Input (Highest Priority) - AND PERSIST IT!
         // 2. AI Analysis Transcript
         // 3. Extracted Text (Metadata)
         // 4. Fallback (Title/Desc)
@@ -296,6 +296,23 @@ async function processRepurposingJob(
         if (config.manualContent && String(config.manualContent).trim().length > 10) {
             transcript = String(config.manualContent);
             console.log('Using MANUAL CONTENT provided by user (Length: ' + transcript.length + ')');
+
+            // CRITICAL: Persist this manual content back to the analysis so it's the source of truth
+            try {
+                await prisma.contentAnalysis.upsert({
+                    where: { contentAssetId: content.id },
+                    update: { transcript: transcript },
+                    create: {
+                        contentAssetId: content.id,
+                        transcript: transcript,
+                        topics: [],
+                        keywords: []
+                    }
+                });
+                console.log('Persisted manual content to ContentAnalysis');
+            } catch (dbErr) {
+                console.error('Failed to persist manual content:', dbErr);
+            }
         }
         else if (content.analysis?.transcript && !content.analysis.transcript.includes('Sample content')) {
             transcript = content.analysis.transcript;
