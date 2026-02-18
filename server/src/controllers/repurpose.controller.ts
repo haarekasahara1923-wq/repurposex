@@ -295,11 +295,15 @@ async function processRepurposingJob(
 
         if (config.manualContent && String(config.manualContent).trim().length > 10) {
             transcript = String(config.manualContent);
-            console.log('Using MANUAL CONTENT provided by user');
+            console.log('Using MANUAL CONTENT provided by user (Length: ' + transcript.length + ')');
         }
-        else if (content.analysis?.transcript) {
+        else if (content.analysis?.transcript && !content.analysis.transcript.includes('Sample content')) {
             transcript = content.analysis.transcript;
             console.log('Using transcript from ANALYSIS');
+        }
+        // Poison pill check - if analysis has sample content, ignore it
+        else if (content.analysis?.transcript && content.analysis.transcript.includes('Sample content')) {
+            console.warn('Ignoring polluted analysis transcript containing "Sample content"');
         }
         else if (content.metadata && (content.metadata as any).extractedText) {
             transcript = (content.metadata as any).extractedText;
