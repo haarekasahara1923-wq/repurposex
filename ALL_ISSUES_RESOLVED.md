@@ -76,6 +76,16 @@ try {
 // Analysis ALWAYS succeeds now! ✅
 ```
 
+### ✅ Issue 5: Single Blog Generation (Fixed)
+**Before:** Selecting 4 blogs resulted in 1 blog.
+**Cause:** Backend was not checking `config.count` from frontend.
+**Fixed:** Added `config.count` to valid parameter list.
+
+### ✅ Issue 6: Duplicate Content (Fixed)
+**Before:** All 4 blogs were identical summaries.
+**Cause:** AI prompt didn't enforce variety.
+**Fixed:** Added "Variety Prompt" instructing AI to focus on specific sections.
+
 ---
 
 ## 📊 Technical Details

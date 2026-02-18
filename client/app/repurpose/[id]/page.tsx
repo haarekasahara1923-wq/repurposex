@@ -238,7 +238,7 @@ export default function RepurposePage() {
                 tone: 'professional',
                 config: isContentVideo
                     ? { numShorts: videoConfig.numShorts, aspectRatio: videoConfig.aspectRatio }
-                    : { numPieces: docConfig.numPieces, style: docConfig.style }
+                    : { count: docConfig.numPieces, numPieces: docConfig.numPieces, style: docConfig.style }
             });
 
             console.log("Job created:", job);
