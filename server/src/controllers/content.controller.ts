@@ -432,10 +432,20 @@ export const analyzeContent = async (req: AuthRequest, res: Response) => {
         }
 
         // Store or Update analysis
+        // SMART UPDATE: Don't overwrite good transcript with bad data
+        const updateData: any = {
+            topics: analysis.topics || [],
+        };
+
+        // Only update transcript if we have valid new text
+        if (textToAnalyze && textToAnalyze.length > 50 && !textToAnalyze.includes('Sample content')) {
+            updateData.transcript = textToAnalyze;
+        }
+
         const contentAnalysis = await prisma.contentAnalysis.upsert({
             where: { contentAssetId: content.id },
             update: {
-                transcript: textToAnalyze,
+                ...updateData,
                 topics: analysis.topics || [],
                 keywords: analysis.keywords || [],
                 sentimentScore: analysis.sentiment?.score || 0.5,
