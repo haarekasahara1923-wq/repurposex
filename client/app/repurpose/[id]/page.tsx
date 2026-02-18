@@ -238,7 +238,12 @@ export default function RepurposePage() {
                 tone: 'professional',
                 config: isContentVideo
                     ? { numShorts: videoConfig.numShorts, aspectRatio: videoConfig.aspectRatio }
-                    : { count: docConfig.numPieces, numPieces: docConfig.numPieces, style: docConfig.style }
+                    : {
+                        count: docConfig.numPieces,
+                        numPieces: docConfig.numPieces,
+                        style: docConfig.style,
+                        manualContent: manualContent || undefined // Send manual content if edited
+                    }
             });
 
             console.log("Job created:", job);
@@ -393,6 +398,17 @@ export default function RepurposePage() {
         }
     };
 
+    const [isEditingContent, setIsEditingContent] = useState(false);
+    const [manualContent, setManualContent] = useState("");
+
+    // Initialize manual content when content loads
+    useEffect(() => {
+        if (content) {
+            const text = content.analysis?.transcript || (content.metadata as any)?.extractedText || "";
+            setManualContent(text);
+        }
+    }, [content]);
+
     const renderPreview = () => {
         if (!content) return null;
 
@@ -450,26 +466,43 @@ export default function RepurposePage() {
             );
         }
 
+        // TEXT/DOCUMENT PREVIEW
         return (
             <div className="w-full min-h-[400px] bg-white text-slate-800 p-8 rounded-xl shadow-2xl relative flex flex-col border border-slate-200">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-                    <FileText className="w-6 h-6 text-blue-600" />
-                    <div>
-                        <h3 className="font-bold text-lg text-slate-900">{content.title}</h3>
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Source Document</p>
-                    </div>
-                </div>
-                <div className="flex-1 overflow-auto max-h-[250px] mb-4">
-                    {content.analysis?.transcript ? (
-                        <p className="text-sm text-slate-600 leading-relaxed italic">
-                            "{content.analysis.transcript.substring(0, 1000)}..."
-                        </p>
-                    ) : (
-                        <div className="space-y-3 opacity-20">
-                            {[90, 80, 100, 70, 85].map((w, i) => (
-                                <div key={i} className="h-2 bg-slate-300 rounded" style={{ width: `${w}%` }} />
-                            ))}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                    <div className="flex items-center gap-3">
+                        <FileText className="w-6 h-6 text-blue-600" />
+                        <div>
+                            <h3 className="font-bold text-lg text-slate-900">{content.title}</h3>
+                            <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Source Document</p>
                         </div>
+                    </div>
+                    <button
+                        onClick={() => setIsEditingContent(!isEditingContent)}
+                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded-full font-bold transition"
+                    >
+                        {isEditingContent ? "Done Editing" : "Edit Content"}
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-auto max-h-[400px] mb-4">
+                    {isEditingContent ? (
+                        <textarea
+                            value={manualContent}
+                            onChange={(e) => setManualContent(e.target.value)}
+                            className="w-full h-full min-h-[300px] p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus:outline-none focus:border-purple-500 transition-colors"
+                            placeholder="Paste your document content here..."
+                        />
+                    ) : (
+                        manualContent ? (
+                            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                                {manualContent.length > 1000 ? manualContent.substring(0, 1000) + "..." : manualContent}
+                            </p>
+                        ) : (
+                            <div className="space-y-3 opacity-20">
+                                <p className="text-center text-slate-400 py-10">No text extracted. Click "Edit Content" to paste text manually.</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>

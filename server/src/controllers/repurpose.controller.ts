@@ -286,8 +286,13 @@ async function processRepurposingJob(
 
         let transcript = '';
 
-        // Try to get transcript from analysis first
-        if (content.analysis?.transcript) {
+        // Priority 1: Manual content from frontend (if user edited it)
+        if (config.manualContent && config.manualContent.trim().length > 10) {
+            transcript = config.manualContent;
+            console.log('Using manual content provided by user');
+        }
+        // Priority 2: Transcript from analysis
+        else if (content.analysis?.transcript) {
             transcript = content.analysis.transcript;
             console.log('Using transcript from analysis');
         }
