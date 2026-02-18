@@ -101,6 +101,7 @@ export interface ContentAsset {
     mimeType?: string;
     createdAt: string;
     analysis?: AnalysisResult;
+    metadata?: any;
 }
 
 export interface AnalysisResult {
