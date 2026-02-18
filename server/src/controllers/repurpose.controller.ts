@@ -343,7 +343,7 @@ async function processRepurposingJob(
             case 'post':
                 // Generate multiple pieces if requested
                 // CRITICAL FIX: Check numPieces (from frontend) not just numBlogs/pieces
-                const numPieces = config.numPieces || config.numBlogs || config.pieces || 1;
+                const numPieces = config.numPieces || config.numBlogs || config.pieces || config.count || 1;
                 const contentStyle = jobType; // blog, newsletter, mail, or post
 
                 console.log(`Generating ${numPieces} ${contentStyle}(s) from content`);
@@ -357,10 +357,14 @@ async function processRepurposingJob(
                 for (let i = 0; i < numPieces; i++) {
                     // Add variety instruction for multiple pieces
                     const varietyPrompt = numPieces > 1
-                        ? `\n\nIMPORTANT: This is ${contentStyle} ${i + 1} of ${numPieces}. Focus on a different aspect or angle of the content to provide variety.`
+                        ? `IMPORTANT INSTRUCTION: You are generating ${contentStyle} #${i + 1} of a series of ${numPieces} posts based on the content below.\n\n` +
+                        `Your GOAL is to write a unique piece that covers a SPECIFIC part, angle, or sub-topic of the content, distinctive from other posts in this series.\n` +
+                        `- If the content has multiple sections/chapters, focus ONLY on section ${i + 1} or the concepts relevant to this specific part.\n` +
+                        `- Do NOT summarize the entire document again.\n` +
+                        `- Dig deep into a specific aspect rather than a broad overview.\n\n`
                         : '';
 
-                    const contentPrompt = transcript + varietyPrompt;
+                    const contentPrompt = varietyPrompt + "SOURCE CONTENT:\n" + transcript;
                     const wordCount = config.wordCount || 1500;
 
                     console.log(`Generating ${contentStyle} ${i + 1}/${numPieces} with ${wordCount} words target...`);
